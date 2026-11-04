@@ -1,0 +1,33 @@
+{
+  "title": "V15 Lastmanagement",
+  "config": {
+    "step": {"user": {
+      "title": "V15 Lastmanagement einrichten",
+      "description": "Wähle einen Netzleistungssensor mit Einheit W oder kW. Positive Werte müssen Netzbezug bedeuten (sonst Vorzeichen umkehren). Die Abschaltung bleibt nach dem Start deaktiviert; der Probelauf schaltet keine Geräte.",
+      "data": {
+        "grid_sensor": "Netzleistungssensor",
+        "limit_kw": "Grenzwert für 15-Minuten-Durchschnitt (kW)",
+        "reserve_kw": "Sicherheitsreserve (kW)",
+        "reverse_sign": "Vorzeichen des Netzleistungssensors umkehren",
+        "stale_seconds": "Maximales Alter eines Messwerts (Sekunden)",
+        "load_switches": "Optional: abschaltbare Schalter (Reihenfolge beachten)"
+      }
+    }},
+    "error": {"reserve_too_high": "Die Reserve muss kleiner als der Grenzwert sein."},
+    "abort": {"already_configured": "V15 Lastmanagement ist bereits eingerichtet."}
+  },
+  "options": {
+    "step": {"init": {
+      "title": "V15 Einstellungen ändern",
+      "data": {
+        "grid_sensor": "Netzleistungssensor",
+        "limit_kw": "Grenzwert (kW)",
+        "reserve_kw": "Sicherheitsreserve (kW)",
+        "reverse_sign": "Vorzeichen umkehren",
+        "stale_seconds": "Maximales Messwertalter (Sekunden)",
+        "load_switches": "Abschaltbare Schalter"
+      }
+    }},
+    "error": {"reserve_too_high": "Die Reserve muss kleiner als der Grenzwert sein."}
+  }
+}

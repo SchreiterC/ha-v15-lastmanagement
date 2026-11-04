@@ -1,0 +1,33 @@
+{
+  "title": "V15 Load Management",
+  "config": {
+    "step": {"user": {
+      "title": "Configure V15 load management",
+      "description": "Select a grid power sensor in W or kW. Positive values must represent grid import (otherwise reverse sign). Live switching is off after startup, and simulation never switches loads.",
+      "data": {
+        "grid_sensor": "Grid power sensor",
+        "limit_kw": "15-minute demand threshold (kW)",
+        "reserve_kw": "Safety margin (kW)",
+        "reverse_sign": "Reverse grid sensor sign",
+        "stale_seconds": "Maximum sensor age (seconds)",
+        "load_switches": "Optional load switches (in shedding order)"
+      }
+    }},
+    "error": {"reserve_too_high": "Reserve must be smaller than the threshold."},
+    "abort": {"already_configured": "V15 load management is already configured."}
+  },
+  "options": {
+    "step": {"init": {
+      "title": "Change V15 settings",
+      "data": {
+        "grid_sensor": "Grid power sensor",
+        "limit_kw": "Threshold (kW)",
+        "reserve_kw": "Safety margin (kW)",
+        "reverse_sign": "Reverse sign",
+        "stale_seconds": "Maximum sensor age (seconds)",
+        "load_switches": "Load switches"
+      }
+    }},
+    "error": {"reserve_too_high": "Reserve must be smaller than the threshold."}
+  }
+}
