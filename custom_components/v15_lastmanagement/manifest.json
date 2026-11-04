@@ -1,13 +1,14 @@
 {
   "domain": "v15_lastmanagement",
   "name": "V15 Lastmanagement",
-  "version": "0.3.5b1",
+  "categories": ["energy"],
+  "codeowners": ["@SchreiterC"],
+  "config_flow": true,
   "documentation": "https://github.com/SchreiterC/ha-v15-lastmanagement",
   "integration_type": "hub",
-  "config_flow": true,
-  "single_config_entry": true,
   "iot_class": "calculated",
+  "issue_tracker": "https://github.com/SchreiterC/ha-v15-lastmanagement/issues",
   "requirements": [],
-  "codeowners": [],
-  "issue_tracker": "https://github.com/SchreiterC/ha-v15-lastmanagement/issues"
+  "single_config_entry": true,
+  "version": "0.3.5b2"
 }
