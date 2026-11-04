@@ -1,7 +1,7 @@
+
 {
   "domain": "v15_lastmanagement",
   "name": "V15 Lastmanagement",
-  "categories": ["energy"],
   "codeowners": ["@SchreiterC"],
   "config_flow": true,
   "documentation": "https://github.com/SchreiterC/ha-v15-lastmanagement",
