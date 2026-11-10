@@ -290,3 +290,67 @@ async def test_reload_does_not_unpause_v15_owned_evcc(
     assert len(commands) == count
     assert hass.states.get(MODE).state == "off"
     assert hass.states.get(evcc_switch(hass, evcc_lab)).state == "off"
+
+
+async def test_manual_off_without_v15_pause_is_not_reversed(
+    hass: HomeAssistant, evcc_lab, freezer
+):
+    """Manual OFF is not V15-owned, so even surplus power must not resume it."""
+    commands = []
+    charger_service(hass, commands)
+    await setup_clock(hass, freezer, grid=1100)
+    await enable(hass, evcc_lab)
+
+    # First establish trusted measurements without any reason to shed current.
+    for sec in range(0, 91, 5):
+        await sample(hass, freezer, sec, 1100, 6900)
+    assert not commands
+    assert not monitor(hass, evcc_lab).evcc.owned_pause
+
+    freezer.move_to(START + timedelta(seconds=95))
+    hass.states.async_set(MODE, "off", {"options": OPTIONS_MODE})
+    hass.states.async_set(CHARGING, "0.0", {"unit_of_measurement": "kW"})
+    hass.states.async_set(GRID, "0", {"unit_of_measurement": "W"})
+    await hass.async_block_till_done()
+    for sec in range(100, 255, 5):
+        await sample(hass, freezer, sec, 0, 0)
+
+    ctrl = monitor(hass, evcc_lab).evcc
+    assert not ctrl.enabled
+    assert not ctrl.owned_pause
+    assert "extern verändert" in ctrl.status
+    assert hass.states.get(MODE).state == "off"
+    assert not commands
+
+
+async def test_grid_meter_failure_blocks_resuming_owned_pause(
+    hass: HomeAssistant, evcc_lab, freezer
+):
+    """After an owned pause, missing grid data cannot grant charging power."""
+    commands = []
+    charger_service(hass, commands, recovery_grid=0)
+    await setup_clock(hass, freezer, grid=9000)
+    await enable(hass, evcc_lab)
+    off_at = await pump_until(
+        hass, freezer, grid=9000, charge=6900,
+        predicate=lambda: monitor(hass, evcc_lab).evcc.owned_pause,
+    )
+
+    freezer.move_to(START + timedelta(seconds=off_at + 5))
+    hass.states.async_set(GRID, "unavailable", {"unit_of_measurement": "W"})
+    hass.states.async_set(CHARGING, "0.0", {"unit_of_measurement": "kW"})
+    await hass.async_block_till_done()
+    original_commands = len(commands)
+    for sec in range(off_at + 10, off_at + 180, 5):
+        freezer.move_to(START + timedelta(seconds=sec))
+        hass.states.async_set(
+            CHARGING, "0.0", {"unit_of_measurement": "kW"}, force_update=True
+        )
+        await hass.async_block_till_done()
+
+    ctrl = monitor(hass, evcc_lab).evcc
+    assert ctrl.enabled
+    assert ctrl.owned_pause
+    assert hass.states.get(MODE).state == "off"
+    assert len(commands) == original_commands
+    assert not any(e == MODE and v == "smart" for e, v, _ in commands)
