@@ -2,7 +2,7 @@
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 
-**Beta-Testversion 0.3.5b4. Keine zertifizierte Begrenzung abrechnungsrelevanter Lastspitzen.**
+**Beta-Testversion 0.3.5b5. Keine zertifizierte Begrenzung abrechnungsrelevanter Lastspitzen.**
 
 V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt die voraussichtliche Viertelstundenleistung und kann bei drohender Überschreitung ausgewählte **unkritische** Home-Assistant-Schalter abschalten. Ab Beta 3 ist eine **optionale automatische Wiedereinschaltung** möglich.
 
@@ -15,7 +15,7 @@ V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt di
 - **Neu:** Wiedereinschalten in umgekehrter Abschaltreihenfolge, wenn die Reserve nachweisbar ausreicht.
 - Simulation mit echten Messwerten ohne Schaltung und Demo mit künstlichen Messwerten.
 - Diagnose mit verwalteten Abschaltungen, Rückschaltkandidat und Wartegrund.
-- 14 Entitäten (7 reguläre Messsensoren einschließlich Diagnose + 1 neuer Abschaltungszähler, 3 Binärsensoren, 3 Steuerschalter). Die bestehenden `unique_id`s bleiben unverändert.
+- Ohne evcc: bisherige 14 Entitäten. Mit evcc: zwei zusätzliche Entitäten (evcc-Regelschalter und Zielstromsensor). Die bisherigen `unique_id`s bleiben unverändert.
 
 ## Installation und Update über HACS
 
@@ -56,6 +56,42 @@ Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerung
 
 **Wichtige Einschränkung bei Neustart, Update und Konfigurationsänderung:** V15 vergisst die in diesem Lauf selbst abgeschalteten Verbraucher bewusst beim Neuladen der Integration und lässt sie ausgeschaltet. Sie werden nicht nachträglich automatisch eingeschaltet. Das verhindert eine unkontrollierte Wiedereinschaltung nach Neustarts. Prüfe sie dann manuell. Auch das Deaktivieren der aktiven Laststeuerung schaltet bereits ausgeschaltete Geräte **nicht** sofort wieder ein.
 
+
+## Neu in Beta 5: Optionale evcc-Ladestrombegrenzung
+
+**Wichtig: Die evcc-Funktion ist ein gesonderter Pilot und wurde noch nicht an einer echten Wallbox getestet.** Die bestehende Lastabschaltung und -rückschaltung bleiben unverändert. Keine evcc-Steuerung wird automatisch eingeschaltet.
+
+### Voraussetzungen
+
+- Eine laufende evcc-Installation und ihre Home-Assistant-Integration (beispielsweise `marq24/ha-evcc`). V15 verwendet die vorhandenen Entitäten, nicht die direkte evcc-HTTP-API.
+- Ein `select` oder `number` für den **maximalen Ladestrom in Ampere**, ein `select` für den **Lademodus** (mit `smart` und `off`) und ein Leistungssensor der Wallbox in **W oder kW**.
+- Ein Sensor für die aktiven Phasen (1 oder 3), alternativ eine bewusst festgelegte Phasenzahl von 1 oder 3. Bei einer dreiphasig möglichen Wallbox darf die Ersatz-Phasenzahl nicht 1 sein.
+- Alle bestehenden Home-Assistant-Automationen, die denselben evcc-Maximalstrom oder -Modus verändern, für den Test **deaktivieren**. Gleichzeitige Regler können sich widersprechen.
+
+### Einrichtung
+
+1. Unter **V15 Lastmanagement → Konfigurieren** das Kästchen **Optionale evcc-Wallboxsteuerung einrichten** aktivieren.
+2. Auf der zusätzlichen Seite evcc-Maximalstrom, Lademodus, Ladeleistung, gegebenenfalls Phasensensor und Grenzwerte auswählen. Für eine typische 3-Phasen-Wallbox zunächst 230 V, 6–16 A, 300 W zusätzlichen Puffer, 90 s stabile Reserve und 30 s Änderungsabstand verwenden.
+3. **Ladepause zulassen** zunächst **deaktiviert** lassen. Ohne diese Freigabe kann V15 unterhalb der 6-A-Mindestgrenze nur einen Hinweis anzeigen und maximal auf 6 A reduzieren.
+4. Nach dem Neustart den Sensor **V15 evcc Zielstrom** und die Attribute von **V15 Diagnose** prüfen. Der Zielstrom wird auch im Probelauf aus echten Daten berechnet; `unbekannt` bedeutet unter anderem, dass der erlaubte Strom unter 6 A läge oder Messwerte fehlen.
+5. Nach dem Probelauf den separaten Schalter **V15 evcc-Ladestromregelung** ausdrücklich einschalten. Es wird nur im evcc-Modus `smart` gesteuert. Das Einschalten beendet den V15-Probelauf. Die bisherige V15-Lastabschaltung ist ein eigener Schalter und muss dafür nicht aktiviert sein.
+
+### Regellogik
+
+- V15 begrenzt den maximal erlaubten evcc-Ladestrom aus dem verfügbaren Viertelstundenbudget, der **tatsächlich gemessenen Wallbox-Ladeleistung** und dem übrigen Netto-Netzbezug. Die allgemeine Sicherheitsreserve wird zusätzlich durch den konfigurierten evcc-Puffer ergänzt.
+- Stromsenkungen werden ohne 90-s-Wartezeit angefordert, Erhöhungen erst nach stabiler Reserve und schrittweise um höchstens **1 A** in mindestens **30 s** Abstand. V15 erhöht niemals über die zu Beginn der Steuerung vorgefundene evcc-Maximalstromgrenze.
+- Ist selbst die Mindestladeleistung (6 A × Phasenzahl × ca. 230 V) zu hoch, wird **nur bei ausdrücklicher Freigabe** und **nur bei tatsächlich messbarer Ladeleistung** der evcc-Modus von `smart` auf `off` gesetzt. V15 darf ausschließlich **seine eigene Ladepause** nach stabiler Leistungsreserve wieder in `smart` freigeben. Der Modus `now` wird niemals gesetzt.
+- Sind normale V15-Abschaltschalter aktiv, werden diese bei Gefährdung zuerst behandelt. V15 verändert nicht gleichzeitig einen Schalter und evcc anhand desselben unbestätigten Netzleistungswertes.
+- Bei ungültigen Daten, Messabdeckung unter 95 %, fehlender Bestätigung eines Stellbefehls oder einer externen Änderung des evcc-Modus/Stromlimits werden **keine weiteren evcc-Stellbefehle** ausgeführt. V15 wechselt gegebenenfalls in den deaktivierten Zustand.
+- Bei einem HA-Neustart, einer Neukonfiguration oder dem Abschalten des evcc-Regelschalters **werden die von V15 gesetzten evcc-Grenzen und Ladepausen nicht automatisch zurückgesetzt**. Das vermeidet unkontrollierte Leistungssprünge. Bitte im evcc-Dashboard manuell prüfen und gegebenenfalls wieder `smart` und die gewünschte Maximalstromgrenze einstellen.
+
+### Bewusste Einschränkungen
+
+- V15 steuert nur **einen evcc-Ladepunkt** pro Integrationseintrag und verwendet zunächst die Home-Assistant-Entitäten, nicht die native evcc REST-API.
+- Keine Phasenumschaltung durch V15, keine Steuerung von Fahrzeug-SoC, Ladeplänen, Solarpriorität oder dynamischen Strompreisen. Diese Aufgaben verbleiben bei evcc.
+- Die Berechnung mit 230 V pro Phase ist eine Näherung. Leistungsbegrenzungen sind nicht abrechnungsgenau garantiert.
+- Die aktive evcc-Steuerung darf wegen der noch ausstehenden Hardwaretests **nicht ungeprüft in einer produktiven Anlage** eingeschaltet werden.
+
 ## Sicherheit und Grenzen
 
 - **Keine sicherheitskritischen Lasten** schalten (medizinische Geräte, Gefrierschränke mit Risiko des Warenverlusts, Server, Alarmtechnik, Heizungsschutz etc.).
@@ -64,7 +100,7 @@ Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerung
 - Die Messintegration berücksichtigt nur positiven Netzbezug; Einspeisung wird nicht gegengerechnet.
 - Netzlast, Gerätereaktion und Schaltzustände können zeitlich verzögert sein. Nicht bestätigte Schaltvorgänge werden protokolliert, und Wiedereinschaltbefehle werden nicht unbegrenzt wiederholt.
 - Bei fehlenden oder veralteten Netzleistungsdaten werden **weder Abschaltung noch Wiedereinschaltung** ausgelöst. Bereits ausgeschaltete Geräte bleiben vorerst aus.
-- Gleichzeitige andere Automationen für dieselben Schalter sind zu vermeiden. V15 steuert keine EV-Ladestromstufen oder Victron-Speicherparameter.
+- Gleichzeitige andere Automationen für dieselben Schalter und für denselben evcc-Maximalstrom sind zu vermeiden. Victron-Speicherparameter werden in dieser Version nicht gesteuert.
 
 ## Sichere Testreihenfolge
 
@@ -73,7 +109,7 @@ Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerung
 3. Zum Test der Wiedereinschaltung **nicht zwischendurch die V15-Einstellungen ändern**, da das die Integration neu lädt und die Liste abgeschalteter Geräte löscht.
 4. Die übrige Hauslast außerhalb von V15 senken, bis die Reserve für *Geräteleistung + Puffer* ausreicht. Nach Mindest-Ausschaltdauer und stabiler Reserve muss der Schalter einmalig zurückgeschaltet werden.
 5. Danach aktive Lastabschaltung deaktivieren und Grenzwerte wieder auf normale Werte stellen.
-6. Testfälle mit ungültigen Messwerten und Neustart separat durchführen. Der Code wurde mit Unit-Tests geprüft, der neue Wiedereinschaltpfad ist **noch nicht in einer laufenden Home-Assistant-Installation bestätigt**.
+6. Testfälle mit ungültigen Messwerten und Neustart separat durchführen. Die Abschaltung und automatische Wiedereinschaltung wurden in einer realen HA-Installation erfolgreich getestet. Für die neue evcc-Anbindung stehen diese Tests noch aus.
 
 ## Fehler und Vorschläge
 

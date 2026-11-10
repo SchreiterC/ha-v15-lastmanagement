@@ -1,0 +1,97 @@
+# Disposable and isolated test configuration. DO NOT copy a production HA backup.
+homeassistant:
+  name: V15 Testlabor
+  time_zone: Europe/Vienna
+  unit_system: metric
+
+http:
+frontend:
+config:
+logger:
+  default: warning
+  logs:
+    custom_components.v15_lastmanagement: info
+
+# The artificial grid meter is 'base load + charging power'. All sensors are
+# pure templates; all settings are internal helpers. No real integrations.
+input_number:
+  v15_test_grundlast_w:
+    name: V15 Test Grundlast (W), negativ = PV-Überschuss
+    min: -12000
+    max: 16000
+    step: 100
+    mode: box
+    initial: 1500
+  v15_test_evcc_ampere:
+    name: V15 Test evcc Maximalstrom (A)
+    min: 6
+    max: 16
+    step: 1
+    mode: slider
+    initial: 16
+
+input_select:
+  v15_test_evcc_modus:
+    name: V15 Test evcc-Modus
+    options:
+      - "off"
+      - smart
+      - now
+    initial: smart
+  v15_test_phasen:
+    name: V15 Test Anzahl Phasen
+    options:
+      - '1'
+      - '3'
+    initial: '3'
+
+input_boolean:
+  v15_test_ev_angesteckt:
+    name: V15 Test Fahrzeug angesteckt
+    initial: true
+
+template:
+  - sensor:
+      - name: V15 Test evcc Ladeleistung
+        unique_id: v15_lab_charge_power
+        unit_of_measurement: W
+        device_class: power
+        state: >-
+          {% if is_state('input_boolean.v15_test_ev_angesteckt', 'on')
+              and is_state('input_select.v15_test_evcc_modus', 'smart') %}
+            {{ ((states('input_number.v15_test_evcc_ampere') | float(6))
+                * (states('input_select.v15_test_phasen') | int(3)) * 230) | round(0) }}
+          {% else %}
+            0
+          {% endif %}
+      - name: V15 Test Netzleistung
+        unique_id: v15_lab_grid_power
+        unit_of_measurement: W
+        device_class: power
+        state: >-
+          {{ (states('input_number.v15_test_grundlast_w') | float(0)
+              + states('sensor.v15_test_evcc_ladeleistung') | float(0)) | round(0) }}
+      - name: V15 Test Phasen
+        unique_id: v15_lab_phases
+        state: "{{ states('input_select.v15_test_phasen') }}"
+    select:
+      - name: V15 Test evcc Maximalstrom
+        unique_id: v15_lab_max_current
+        state: "{{ states('input_number.v15_test_evcc_ampere') | int(16) }}"
+        options: "{{ ['6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16'] }}"
+        select_option:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.v15_test_evcc_ampere
+            data:
+              value: "{{ option | int }}"
+      - name: V15 Test evcc Modus
+        unique_id: v15_lab_mode
+        state: "{{ states('input_select.v15_test_evcc_modus') }}"
+        options: "{{ ['off', 'smart', 'now'] }}"
+        select_option:
+          - action: input_select.select_option
+            target:
+              entity_id: input_select.v15_test_evcc_modus
+            data:
+              option: "{{ option }}"

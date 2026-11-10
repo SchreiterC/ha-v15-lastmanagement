@@ -1,3 +1,12 @@
+## v0.3.5b5 – evcc Pilot (nicht veröffentlicht)
+
+- Optionaler evcc-Einrichtungsdialog mit frei wählbaren Home-Assistant-Entitäten.
+- Neue, separat aktivierbare evcc-Ladestromsteuerung und Zielstromsensor.
+- Dynamische Begrenzung des Maximalstroms, vorsichtige Stromerhöhung und optionales Pausieren/Wiederaufnehmen des Lademodus `smart`.
+- Schutz gegen unzuverlässige Messwerte, fehlende Befehlsbestätigung, externe Reglereingriffe und ungewollte Steuerung nach Neustarts.
+- Deutsche/englische Feldbeschriftungen und Erklärungen, zusätzliche Unit-Tests.
+- **Pilotstatus: nicht in einer echten Home-Assistant-/evcc-Installation getestet.**
+
 # Versionshistorie
 
 ## 0.3.5b4 – Beta 4: Deutschsprachige Einstellungen und Hilfetexte (2026-11-10)

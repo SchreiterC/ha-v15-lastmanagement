@@ -1,4 +1,4 @@
-"""User-facing V15 setup and options, including per-load restore estimates."""
+"""UI setup and Options for V15, optional load restoration and evcc controls."""
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig
@@ -10,11 +10,25 @@ from .const import (
     CONF_RESTORE_MIN_OFF, CONF_RESTORE_MARGIN,
     DEFAULT_RESTORE, DEFAULT_RESTORE_STABLE,
     DEFAULT_RESTORE_MIN_OFF, DEFAULT_RESTORE_MARGIN,
+    CONF_EVCC_CONFIGURED, CONF_EVCC_CURRENT, CONF_EVCC_MODE, CONF_EVCC_POWER,
+    CONF_EVCC_PHASES, CONF_EVCC_FIXED_PHASES, CONF_EVCC_MIN_A,
+    CONF_EVCC_MAX_A, CONF_EVCC_VOLTAGE, CONF_EVCC_MARGIN_W,
+    CONF_EVCC_STABLE_S, CONF_EVCC_STEP_S, CONF_EVCC_ALLOW_PAUSE,
+    DEFAULT_EVCC_PHASES, DEFAULT_EVCC_MIN_A, DEFAULT_EVCC_MAX_A,
+    DEFAULT_EVCC_VOLTAGE, DEFAULT_EVCC_MARGIN_W, DEFAULT_EVCC_STABLE_S,
+    DEFAULT_EVCC_STEP_S,
+)
+
+EVCC_OPTION_KEYS = (
+    CONF_EVCC_CURRENT, CONF_EVCC_MODE, CONF_EVCC_POWER, CONF_EVCC_PHASES,
+    CONF_EVCC_FIXED_PHASES, CONF_EVCC_MIN_A, CONF_EVCC_MAX_A,
+    CONF_EVCC_VOLTAGE, CONF_EVCC_MARGIN_W, CONF_EVCC_STABLE_S,
+    CONF_EVCC_STEP_S, CONF_EVCC_ALLOW_PAUSE,
 )
 
 
 def schema(values=None):
-    """Keep old config fields and IDs; add opt-in restoration settings."""
+    """Keep existing config field IDs and opt-in defaults."""
     values = values or {}
     grid = EntitySelector(EntitySelectorConfig(domain="sensor"))
     loads = EntitySelector(EntitySelectorConfig(domain="switch", multiple=True))
@@ -38,14 +52,12 @@ def schema(values=None):
         vol.Required(CONF_RESTORE_MARGIN,
                      default=values.get(CONF_RESTORE_MARGIN, DEFAULT_RESTORE_MARGIN)):
             vol.All(vol.Coerce(float), vol.Range(min=0, max=5000)),
+        vol.Required(CONF_EVCC_CONFIGURED,
+                     default=values.get(CONF_EVCC_CONFIGURED, False)): bool,
     })
 
 
 def restore_schema(loads, previous=None):
-    """One required rated power in watts for every selected load.
-
-    Field names are the actual switch entity_ids, avoiding ambiguous numbering.
-    """
     previous = previous or {}
     return vol.Schema({
         vol.Required(entity_id, default=previous.get(entity_id, vol.UNDEFINED)):
@@ -55,8 +67,49 @@ def restore_schema(loads, previous=None):
 
 
 def restore_description_placeholders(loads):
-    """Show exactly which switches need an estimated power, in selection order."""
     return {"switches": "\n".join(f"- `{entity_id}`" for entity_id in loads)}
+
+
+def evcc_schema(previous=None):
+    """evcc is optional; entity IDs are selected rather than hard-coded."""
+    v = previous or {}
+    return vol.Schema({
+        vol.Required(CONF_EVCC_CURRENT,
+                     default=v.get(CONF_EVCC_CURRENT, vol.UNDEFINED)):
+            EntitySelector(EntitySelectorConfig(domain=["select", "number"])),
+        vol.Required(CONF_EVCC_MODE,
+                     default=v.get(CONF_EVCC_MODE, vol.UNDEFINED)):
+            EntitySelector(EntitySelectorConfig(domain="select")),
+        vol.Required(CONF_EVCC_POWER,
+                     default=v.get(CONF_EVCC_POWER, vol.UNDEFINED)):
+            EntitySelector(EntitySelectorConfig(domain="sensor")),
+        vol.Optional(CONF_EVCC_PHASES,
+                     default=v.get(CONF_EVCC_PHASES, vol.UNDEFINED)):
+            EntitySelector(EntitySelectorConfig(domain="sensor")),
+        vol.Required(CONF_EVCC_FIXED_PHASES,
+                     default=v.get(CONF_EVCC_FIXED_PHASES, DEFAULT_EVCC_PHASES)):
+            vol.In([1, 3]),
+        vol.Required(CONF_EVCC_MIN_A,
+                     default=v.get(CONF_EVCC_MIN_A, DEFAULT_EVCC_MIN_A)):
+            vol.All(vol.Coerce(int), vol.Range(min=6, max=32)),
+        vol.Required(CONF_EVCC_MAX_A,
+                     default=v.get(CONF_EVCC_MAX_A, DEFAULT_EVCC_MAX_A)):
+            vol.All(vol.Coerce(int), vol.Range(min=6, max=32)),
+        vol.Required(CONF_EVCC_VOLTAGE,
+                     default=v.get(CONF_EVCC_VOLTAGE, DEFAULT_EVCC_VOLTAGE)):
+            vol.All(vol.Coerce(int), vol.Range(min=200, max=250)),
+        vol.Required(CONF_EVCC_MARGIN_W,
+                     default=v.get(CONF_EVCC_MARGIN_W, DEFAULT_EVCC_MARGIN_W)):
+            vol.All(vol.Coerce(int), vol.Range(min=0, max=3000)),
+        vol.Required(CONF_EVCC_STABLE_S,
+                     default=v.get(CONF_EVCC_STABLE_S, DEFAULT_EVCC_STABLE_S)):
+            vol.All(vol.Coerce(int), vol.Range(min=30, max=900)),
+        vol.Required(CONF_EVCC_STEP_S,
+                     default=v.get(CONF_EVCC_STEP_S, DEFAULT_EVCC_STEP_S)):
+            vol.All(vol.Coerce(int), vol.Range(min=30, max=300)),
+        vol.Required(CONF_EVCC_ALLOW_PAUSE,
+                     default=v.get(CONF_EVCC_ALLOW_PAUSE, False)): bool,
+    })
 
 
 def validation_error(data):
@@ -64,6 +117,14 @@ def validation_error(data):
         return "reserve_too_high"
     if data.get(CONF_RESTORE, False) and not data.get(CONF_LOADS):
         return "restore_requires_loads"
+    return None
+
+
+def evcc_error(data):
+    if data[CONF_EVCC_MIN_A] > data[CONF_EVCC_MAX_A]:
+        return "evcc_current_limits"
+    if data[CONF_EVCC_CURRENT] == data[CONF_EVCC_MODE]:
+        return "evcc_separate_entities"
     return None
 
 
@@ -78,11 +139,16 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._pending_data = dict(user_input)
                 if user_input.get(CONF_RESTORE):
                     return await self.async_step_restore()
-                await self.async_set_unique_id("v15_main")
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(title="V15 Lastmanagement", data=user_input)
+                return await self._continue_setup()
             errors["base"] = error
         return self.async_show_form(step_id="user", data_schema=schema(user_input), errors=errors)
+
+    async def _continue_setup(self):
+        if self._pending_data.get(CONF_EVCC_CONFIGURED):
+            return await self.async_step_evcc()
+        await self.async_set_unique_id("v15_main")
+        self._abort_if_unique_id_configured()
+        return self.async_create_entry(title="V15 Lastmanagement", data=self._pending_data)
 
     async def async_step_restore(self, user_input=None):
         if user_input is not None:
@@ -90,16 +156,23 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 entity_id: float(user_input[entity_id])
                 for entity_id in self._pending_data[CONF_LOADS]
             }
-            await self.async_set_unique_id("v15_main")
-            self._abort_if_unique_id_configured()
-            return self.async_create_entry(title="V15 Lastmanagement", data=self._pending_data)
+            return await self._continue_setup()
         return self.async_show_form(
-            step_id="restore",
-            data_schema=restore_schema(self._pending_data[CONF_LOADS]),
-            description_placeholders=restore_description_placeholders(
-                self._pending_data[CONF_LOADS]
-            ),
+            step_id="restore", data_schema=restore_schema(self._pending_data[CONF_LOADS]),
+            description_placeholders=restore_description_placeholders(self._pending_data[CONF_LOADS]),
         )
+
+    async def async_step_evcc(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            error = evcc_error(user_input)
+            if error is None:
+                self._pending_data.update(user_input)
+                await self.async_set_unique_id("v15_main")
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(title="V15 Lastmanagement", data=self._pending_data)
+            errors["base"] = error
+        return self.async_show_form(step_id="evcc", data_schema=evcc_schema(user_input), errors=errors)
 
     @staticmethod
     def async_get_options_flow(config_entry):
@@ -114,15 +187,20 @@ class V15OptionsFlow(config_entries.OptionsFlow):
             error = validation_error(user_input)
             if error is None:
                 self._pending_data = dict(user_input)
+                self._previous = current
                 if user_input.get(CONF_RESTORE):
-                    self._previous_powers = current.get(CONF_RESTORE_POWERS, {})
                     return await self.async_step_restore()
                 self._pending_data[CONF_RESTORE_POWERS] = {}
-                return self.async_create_entry(title="", data=self._pending_data)
+                return await self._continue_options()
             errors["base"] = error
         return self.async_show_form(
             step_id="init", data_schema=schema(user_input or current), errors=errors
         )
+
+    async def _continue_options(self):
+        if self._pending_data.get(CONF_EVCC_CONFIGURED):
+            return await self.async_step_evcc()
+        return self.async_create_entry(title="", data=self._pending_data)
 
     async def async_step_restore(self, user_input=None):
         if user_input is not None:
@@ -130,13 +208,23 @@ class V15OptionsFlow(config_entries.OptionsFlow):
                 entity_id: float(user_input[entity_id])
                 for entity_id in self._pending_data[CONF_LOADS]
             }
-            return self.async_create_entry(title="", data=self._pending_data)
+            return await self._continue_options()
         return self.async_show_form(
-            step_id="restore",
-            data_schema=restore_schema(
-                self._pending_data[CONF_LOADS], self._previous_powers
+            step_id="restore", data_schema=restore_schema(
+                self._pending_data[CONF_LOADS], self._previous.get(CONF_RESTORE_POWERS, {})
             ),
-            description_placeholders=restore_description_placeholders(
-                self._pending_data[CONF_LOADS]
-            ),
+            description_placeholders=restore_description_placeholders(self._pending_data[CONF_LOADS]),
+        )
+
+    async def async_step_evcc(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            error = evcc_error(user_input)
+            if error is None:
+                self._pending_data.update(user_input)
+                return self.async_create_entry(title="", data=self._pending_data)
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="evcc", data_schema=evcc_schema(user_input or self._previous),
+            errors=errors,
         )

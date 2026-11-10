@@ -15,7 +15,8 @@
           "auto_restore": "Abgeschaltete Verbraucher automatisch wieder einschalten",
           "restore_stable_seconds": "Erforderliche Dauer mit ausreichender Leistungsreserve (Sekunden)",
           "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
-          "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)"
+          "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
+          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -27,17 +28,52 @@
           "auto_restore": "Nur Verbraucher, die V15 in diesem Lauf selbst abgeschaltet hat, dürfen nach ausreichender Leistungsreserve automatisch wieder eingeschaltet werden. Die aktive Laststeuerung muss dafür separat eingeschaltet sein.",
           "restore_stable_seconds": "Die verfügbare Reserve muss so lange ohne Unterbrechung ausreichen, bevor V15 einen Verbraucher wieder einschalten darf.",
           "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
-          "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss."
+          "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
+          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden."
         }
       },
       "restore": {
         "title": "Geschätzte Leistungsaufnahme der Verbraucher (W)",
         "description": "**Wozu dienen diese Werte?** V15 prüft vor dem automatischen Wiedereinschalten, ob die erwartete Geräteleistung **plus zusätzlichem Puffer** noch in das verfügbare Leistungsbudget passt.\n\n**Bitte für jeden Schalter die konservativ geschätzte maximale Leistungsaufnahme in Watt eingeben**, möglichst einschließlich einer möglichen Einschaltspitze. Kein Durchschnittsverbrauch und **keine kW**. Beispiel: Für ein Gerät mit maximal 600 W trägst Du `600` ein. Zu niedrige Angaben können zu einer Grenzwertüberschreitung führen.\n\n**Ausgewählte Schalter (in derselben Reihenfolge wie die Eingabefelder):**\n{switches}\n\nNur von V15 selbst abgeschaltete Schalter werden automatisch wieder eingeschaltet. Nach Neustart oder Konfigurationsänderung erfolgt keine nachträgliche Rückschaltung."
+      },
+      "evcc": {
+        "title": "evcc-Wallbox einrichten",
+        "description": "**Optional, nur für bereits in Home Assistant verfügbare evcc-Entitäten.** Wähle die evcc-Entitäten Deiner Wallbox. V15 regelt höchstens den zulässigen Maximalstrom. Nur wenn die Ladepause ausdrücklich erlaubt ist, darf V15 den Modus von `smart` auf `off` und später zurück auf `smart` setzen. Es wird **niemals `now`** aktiviert.\n\n**Nach einem Home-Assistant-Neustart ist die V15-evcc-Steuerung ausgeschaltet.** Bereits gesetzte Stromlimits oder Ladepausen bleiben in evcc möglicherweise bestehen und müssen gegebenenfalls manuell aufgehoben werden. Die evcc-Eigenfunktionen für Solarüberschuss, Strompreise und Ladepläne bleiben zuständig.",
+        "data": {
+          "evcc_current_entity": "evcc Maximalstrom (Select oder Number)",
+          "evcc_mode_entity": "evcc Lademodus (Select)",
+          "evcc_charge_power_entity": "evcc Ladeleistung (Sensor)",
+          "evcc_phases_entity": "Aktive Ladephasen (Sensor, optional)",
+          "evcc_fixed_phases": "Phasenzahl ohne aktiven Sensor (1 oder 3)",
+          "evcc_min_current_a": "Kleinster zulässiger Ladestrom (A)",
+          "evcc_max_current_a": "Obergrenze des Ladestroms (A)",
+          "evcc_voltage": "Rechenspannung je Phase (V)",
+          "evcc_margin_w": "Zusätzlicher Sicherheitspuffer (W)",
+          "evcc_stable_seconds": "Dauer stabiler Reserve vor Erhöhung (s)",
+          "evcc_step_seconds": "Mindestabstand zwischen Änderungen (s)",
+          "evcc_allow_pause": "evcc bei zu wenig Budget automatisch pausieren"
+        },
+        "data_description": {
+          "evcc_current_entity": "Wähle z. B. select.evcc_go_e_wallbox_max_current. V15 übernimmt nur exakt angebotene Stromwerte in Ampere oder eine number-Entität.",
+          "evcc_mode_entity": "Wähle z. B. select.evcc_go_e_wallbox_mode. Vor der Aktivierung muss der Zustand smart sein. Die Modi now/off werden nicht übernommen.",
+          "evcc_charge_power_entity": "Momentan gemessene Ladeleistung Deiner Wallbox in W oder kW, beispielsweise sensor.evcc_go_e_wallbox_charge_power.",
+          "evcc_phases_entity": "Sensor mit dem Wert 1 oder 3. Unbekannte Phasenzahlen sperren die Stromregelung. Während einer von V15 ausgelösten Ladepause kann die zuletzt bekannte Phasenzahl konservativ weiterverwendet werden.",
+          "evcc_fixed_phases": "Wird verwendet, wenn kein Phasensensor ausgewählt ist. Trage niemals 1 ein, wenn Deine Wallbox mit 3 Phasen laden kann.",
+          "evcc_min_current_a": "Normalerweise 6 A nach IEC 61851. Darunter kann V15 nicht weiter reduzieren, sondern nur bei ausdrücklich erlaubter Ladepause auf off wechseln.",
+          "evcc_max_current_a": "Obergrenze in Ampere, unabhängig von der ursprünglichen evcc-Grenze. V15 erhöht nicht über den Stromwert, der bei der Aktivierung eingestellt war.",
+          "evcc_voltage": "Typischerweise 230 V. Die Berechnung ist eine Näherung und kein Ersatz für einen kalibrierten Leistungsmesser.",
+          "evcc_margin_w": "Zusätzliche Reserve ausschließlich für die evcc-Ladestromregelung. Die allgemeine V15-Reserve wird bereits berücksichtigt.",
+          "evcc_stable_seconds": "Erhöhungen und die Wiederfreigabe nach einer Ladepause erfordern eine durchgehend ausreichende Reserve.",
+          "evcc_step_seconds": "Mindestens 30 Sekunden. Nach jeder Änderung wird auf die Rückmeldung der evcc-Entität gewartet.",
+          "evcc_allow_pause": "Wenn selbst die Mindestladeleistung das Budget übersteigt, darf V15 den Lademodus smart auf off setzen. Nur V15-eigene Pausen dürfen automatisch freigegeben werden. Bei Neustart oder Deaktivierung kann off bestehen bleiben."
+        }
       }
     },
     "error": {
       "reserve_too_high": "Die Sicherheitsreserve muss kleiner als der Grenzwert sein.",
-      "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren."
+      "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren.",
+      "evcc_current_limits": "Der minimale Ladestrom darf nicht größer als der maximale sein.",
+      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement ist bereits eingerichtet."
@@ -58,7 +94,8 @@
           "auto_restore": "Abgeschaltete Verbraucher automatisch wieder einschalten",
           "restore_stable_seconds": "Erforderliche Dauer mit ausreichender Leistungsreserve (Sekunden)",
           "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
-          "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)"
+          "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
+          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -70,17 +107,52 @@
           "auto_restore": "Nur Verbraucher, die V15 in diesem Lauf selbst abgeschaltet hat, dürfen nach ausreichender Leistungsreserve automatisch wieder eingeschaltet werden. Die aktive Laststeuerung muss dafür separat eingeschaltet sein.",
           "restore_stable_seconds": "Die verfügbare Reserve muss so lange ohne Unterbrechung ausreichen, bevor V15 einen Verbraucher wieder einschalten darf.",
           "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
-          "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss."
+          "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
+          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden."
         }
       },
       "restore": {
         "title": "Geschätzte Leistungsaufnahme der Verbraucher (W)",
         "description": "**Wozu dienen diese Werte?** V15 prüft vor dem automatischen Wiedereinschalten, ob die erwartete Geräteleistung **plus zusätzlichem Puffer** noch in das verfügbare Leistungsbudget passt.\n\n**Bitte für jeden Schalter die konservativ geschätzte maximale Leistungsaufnahme in Watt eingeben**, möglichst einschließlich einer möglichen Einschaltspitze. Kein Durchschnittsverbrauch und **keine kW**. Beispiel: Für ein Gerät mit maximal 600 W trägst Du `600` ein. Zu niedrige Angaben können zu einer Grenzwertüberschreitung führen.\n\n**Ausgewählte Schalter (in derselben Reihenfolge wie die Eingabefelder):**\n{switches}\n\nNur von V15 selbst abgeschaltete Schalter werden automatisch wieder eingeschaltet. Nach Neustart oder Konfigurationsänderung erfolgt keine nachträgliche Rückschaltung."
+      },
+      "evcc": {
+        "title": "evcc-Wallbox einrichten",
+        "description": "**Optional, nur für bereits in Home Assistant verfügbare evcc-Entitäten.** Wähle die evcc-Entitäten Deiner Wallbox. V15 regelt höchstens den zulässigen Maximalstrom. Nur wenn die Ladepause ausdrücklich erlaubt ist, darf V15 den Modus von `smart` auf `off` und später zurück auf `smart` setzen. Es wird **niemals `now`** aktiviert.\n\n**Nach einem Home-Assistant-Neustart ist die V15-evcc-Steuerung ausgeschaltet.** Bereits gesetzte Stromlimits oder Ladepausen bleiben in evcc möglicherweise bestehen und müssen gegebenenfalls manuell aufgehoben werden. Die evcc-Eigenfunktionen für Solarüberschuss, Strompreise und Ladepläne bleiben zuständig.",
+        "data": {
+          "evcc_current_entity": "evcc Maximalstrom (Select oder Number)",
+          "evcc_mode_entity": "evcc Lademodus (Select)",
+          "evcc_charge_power_entity": "evcc Ladeleistung (Sensor)",
+          "evcc_phases_entity": "Aktive Ladephasen (Sensor, optional)",
+          "evcc_fixed_phases": "Phasenzahl ohne aktiven Sensor (1 oder 3)",
+          "evcc_min_current_a": "Kleinster zulässiger Ladestrom (A)",
+          "evcc_max_current_a": "Obergrenze des Ladestroms (A)",
+          "evcc_voltage": "Rechenspannung je Phase (V)",
+          "evcc_margin_w": "Zusätzlicher Sicherheitspuffer (W)",
+          "evcc_stable_seconds": "Dauer stabiler Reserve vor Erhöhung (s)",
+          "evcc_step_seconds": "Mindestabstand zwischen Änderungen (s)",
+          "evcc_allow_pause": "evcc bei zu wenig Budget automatisch pausieren"
+        },
+        "data_description": {
+          "evcc_current_entity": "Wähle z. B. select.evcc_go_e_wallbox_max_current. V15 übernimmt nur exakt angebotene Stromwerte in Ampere oder eine number-Entität.",
+          "evcc_mode_entity": "Wähle z. B. select.evcc_go_e_wallbox_mode. Vor der Aktivierung muss der Zustand smart sein. Die Modi now/off werden nicht übernommen.",
+          "evcc_charge_power_entity": "Momentan gemessene Ladeleistung Deiner Wallbox in W oder kW, beispielsweise sensor.evcc_go_e_wallbox_charge_power.",
+          "evcc_phases_entity": "Sensor mit dem Wert 1 oder 3. Unbekannte Phasenzahlen sperren die Stromregelung. Während einer von V15 ausgelösten Ladepause kann die zuletzt bekannte Phasenzahl konservativ weiterverwendet werden.",
+          "evcc_fixed_phases": "Wird verwendet, wenn kein Phasensensor ausgewählt ist. Trage niemals 1 ein, wenn Deine Wallbox mit 3 Phasen laden kann.",
+          "evcc_min_current_a": "Normalerweise 6 A nach IEC 61851. Darunter kann V15 nicht weiter reduzieren, sondern nur bei ausdrücklich erlaubter Ladepause auf off wechseln.",
+          "evcc_max_current_a": "Obergrenze in Ampere, unabhängig von der ursprünglichen evcc-Grenze. V15 erhöht nicht über den Stromwert, der bei der Aktivierung eingestellt war.",
+          "evcc_voltage": "Typischerweise 230 V. Die Berechnung ist eine Näherung und kein Ersatz für einen kalibrierten Leistungsmesser.",
+          "evcc_margin_w": "Zusätzliche Reserve ausschließlich für die evcc-Ladestromregelung. Die allgemeine V15-Reserve wird bereits berücksichtigt.",
+          "evcc_stable_seconds": "Erhöhungen und die Wiederfreigabe nach einer Ladepause erfordern eine durchgehend ausreichende Reserve.",
+          "evcc_step_seconds": "Mindestens 30 Sekunden. Nach jeder Änderung wird auf die Rückmeldung der evcc-Entität gewartet.",
+          "evcc_allow_pause": "Wenn selbst die Mindestladeleistung das Budget übersteigt, darf V15 den Lademodus smart auf off setzen. Nur V15-eigene Pausen dürfen automatisch freigegeben werden. Bei Neustart oder Deaktivierung kann off bestehen bleiben."
+        }
       }
     },
     "error": {
       "reserve_too_high": "Die Sicherheitsreserve muss kleiner als der Grenzwert sein.",
-      "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren."
+      "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren.",
+      "evcc_current_limits": "Der minimale Ladestrom darf nicht größer als der maximale sein.",
+      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein."
     }
   }
 }

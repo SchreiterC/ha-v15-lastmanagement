@@ -5,7 +5,10 @@ from .device import v15_device_info
 
 async def async_setup_entry(hass, entry, async_add_entities):
     m = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([V15Control(m), V15Simulation(m), V15Demo(m)])
+    entities = [V15Control(m), V15Simulation(m), V15Demo(m)]
+    if m.evcc.configured:
+        entities.append(V15EvccControl(m))
+    async_add_entities(entities)
 
 class V15BaseSwitch(SwitchEntity):
     _attr_has_entity_name = False
@@ -48,6 +51,7 @@ class V15Simulation(V15BaseSwitch):
         return self.monitor.simulation
     async def async_turn_on(self, **kwargs):
         self.monitor.enabled = False
+        self.monitor.evcc.deactivate("Probelauf aktiviert; evcc nicht mehr gesteuert")
         self.monitor.simulation = True
         self.monitor.update()
     async def async_turn_off(self, **kwargs):
@@ -66,6 +70,7 @@ class V15Demo(V15BaseSwitch):
     async def async_turn_on(self, **kwargs):
         from homeassistant.util import dt as dt_util
         self.monitor.enabled = False
+        self.monitor.evcc.deactivate("Künstliche Demo aktiviert; evcc nicht mehr gesteuert")
         self.monitor.simulation = True
         self.monitor.demo_data = True
         self.monitor.demo_started = dt_util.now()
@@ -84,4 +89,36 @@ class V15Demo(V15BaseSwitch):
         self.monitor.last_w = None
         self.monitor.energy_wh = 0.0
         self.monitor.coverage_s = 0.0
+        self.monitor.update()
+
+
+class V15EvccControl(V15BaseSwitch):
+    """Separate, explicit opt-in for actual evcc max-current/mode control."""
+    key = "evcc_live_control"
+    _attr_name = "V15 evcc-Ladestromregelung"
+    _attr_icon = "mdi:ev-station"
+
+    @property
+    def is_on(self):
+        return self.monitor.evcc.enabled
+
+    @property
+    def extra_state_attributes(self):
+        e = self.monitor.evcc
+        return {
+            "status": e.status,
+            "original_max_current_a": e.original_current,
+            "paused_by_v15": e.owned_pause,
+            "last_action": e.last_action,
+        }
+
+    async def async_turn_on(self, **kwargs):
+        self.monitor.evcc.activate()
+        self.monitor.simulation = False
+        self.monitor.update()
+
+    async def async_turn_off(self, **kwargs):
+        self.monitor.evcc.deactivate(
+            "V15 evcc-Steuerung deaktiviert; Ladezustand und Stromlimit in evcc prüfen"
+        )
         self.monitor.update()
