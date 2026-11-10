@@ -298,12 +298,13 @@ async def test_manual_off_without_v15_pause_is_not_reversed(
     """Manual OFF is not V15-owned, so even surplus power must not resume it."""
     commands = []
     charger_service(hass, commands)
-    await setup_clock(hass, freezer, grid=1100)
+    # 1 kW of real PV export while the virtual charger draws 6.9 kW leaves
+    # enough headroom for 16 A, so V15 must not issue its own command first.
+    await setup_clock(hass, freezer, grid=-1000)
     await enable(hass, evcc_lab)
 
-    # First establish trusted measurements without any reason to shed current.
     for sec in range(0, 91, 5):
-        await sample(hass, freezer, sec, 1100, 6900)
+        await sample(hass, freezer, sec, -1000, 6900)
     assert not commands
     assert not monitor(hass, evcc_lab).evcc.owned_pause
 
