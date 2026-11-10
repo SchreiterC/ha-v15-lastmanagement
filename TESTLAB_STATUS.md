@@ -15,7 +15,7 @@
 - Docker-Compose-Start und Sichtprüfung der Konfigurationsoberfläche.
 - Reale evcc-Netzwerk- und Wallbox-Kommunikation (absichtlich ausgeschlossen).
 
-**Grund:** Die Ausführungsumgebung enthält nur Python 3.13.5 und keinen Docker-Daemon. Home Assistant 2026.11.0 benötigt Python >= 3.14.2. Der Paketindex ist in dieser Umgebung nicht erreichbar. Die GitHub-Actions-Vorlage verwendet Python 3.14 und installiert Home Assistant samt Test-Fixtures separat.
+**Grund:** Die Ausführungsumgebung enthält nur Python 3.13.5 und keinen Docker-Daemon. Home Assistant 2026.11.0 benötigt Python >= 3.14.2. Der Paketindex ist in dieser Umgebung nicht erreichbar. Die GitHub-Actions-Vorlage verwendet Python 3.14 und die offizielle pytest-homeassistant-Version 2026.11.0.
 
 ## Tests
 
@@ -40,4 +40,4 @@ Siehe `lab_ha/README_DE.md`.
 
 ## Branch-Strategie
 
-Die veröffentlichte Beta 4 bleibt auf `main`. Der Entwicklungszweig `dev/evcc-simulator` dokumentiert das Vorhaben. Das Paket hier enthält die neue Beta-5-Codebasis und den vollständigen Testlabor-Aufbau. **Der GitHub-Branch enthält diese Codebasis und die QA-Dateien noch nicht vollständig; ein CI-Erfolg ist daher nicht behauptet.**
+Die veröffentlichte Beta 4 bleibt auf `main`. Der Entwicklungszweig `dev/evcc-simulator` dokumentiert das Vorhaben. Das Paket hier enthält die neue Beta-5-Codebasis und den vollständigen Testlabor-Aufbau. **Die Beta-5-Codebasis und die QA-Dateien liegen auf dem Entwicklungszweig. Die neuen HA-Integrationstests gelten erst nach erfolgreichem GitHub-Actions-Lauf als bestanden.**

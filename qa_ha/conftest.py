@@ -1,12 +1,4 @@
-"""Real Home Assistant fixtures, isolated from every production device.
+"""Real HA 2026.11 fixtures from the first-party pytest-homeassistant plugin.
 
-Run only with Home Assistant 2026.11.x and pytest-homeassistant-custom-component.
+The plugin is auto-discovered and custom integrations are enabled by default.
 """
-
-import pytest
-
-
-@pytest.fixture(autouse=True)
-def allow_custom_component(enable_custom_integrations):
-    """Register the local test copy of V15 with Home Assistant's loader."""
-    return None
