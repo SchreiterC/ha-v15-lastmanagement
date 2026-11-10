@@ -29,3 +29,15 @@ V15 mit echten Regelfunktionen, aber ausschließlich virtuellen Home-Assistant-E
 
 ## Sicherheit
 Dieser Zweig darf nicht mit dem stabil veröffentlichten Release verwechselt werden. Keine Zugangsdaten, IP-Adressen produktiver Geräte oder automatischen Verbindungen zum Heimnetz verwenden. Simulierte Ergebnisse sind kein Beweis für korrektes Verhalten einer echten Wallbox.
+
+## Stand der zweiten Teststufe (10.11.2026)
+
+Im lokalen Entwicklungspaket `v15_evcc_ha_testlabor_2026_11.zip` sind inzwischen folgende Dateien vorbereitet:
+
+- `qa_ha/test_ha_runtime.py`: echte HA-Instanz per pytest-Fixture, Test der Entitätsregistrierung, Schalter-Aktivierung, Reload-Sperre, Konfigurationsfluss und der evcc-Servicebefehle an virtuelle Ziele
+- `qa_ha/requirements.txt` und `pytest.ini`: HA-2026.11-Testabhängigkeiten
+- `.github/workflows/ha-runtime-tests.yml`: Vorlage für einen isolierten GitHub-Actions-Test mit Python 3.14
+- `lab_ha/compose.yaml` und `lab_ha/config/configuration.yaml`: optionale Home-Assistant-Containerinstanz mit virtuellen Sensoren und Template-Selects
+- `lab_ha/README_DE.md`: Inbetriebnahme nur auf einem separaten Testrechner
+
+**Verifiziert:** 63 bestehende Tests und statische YAML-/Python-Prüfungen. **Noch offen:** die neuen Tests in echter HA-Laufzeit ausführen und die Containeroberfläche prüfen. Python 3.13 in der lokalen Umgebung reicht nicht aus: HA 2026.11 erfordert Python 3.14.2 oder neuer. Die vollständigen Beta-5- und Testdateien liegen bislang im lokalen Paket und sind **noch nicht** in diesen Entwicklungszweig übernommen. Das veröffentlichte `main` bleibt unberührt.
