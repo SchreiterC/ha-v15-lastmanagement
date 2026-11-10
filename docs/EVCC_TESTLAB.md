@@ -23,9 +23,13 @@ V15 mit echten Regelfunktionen, aber ausschließlich virtuellen Home-Assistant-E
 
 ## Teststufen
 - **Stufe A:** Rechenlogik und Controller mit Python-Fakes und beschleunigter Uhr. Lokal erste 63 Tests erfolgreich, darunter vier neue Szenariotests.
-- **Stufe B (bestanden):** 6 Integrationstests mit Home Assistant 2026.11 und virtuellen Geräten erfolgreich, einschließlich Service-Aufrufen und Entitätsregistrierung.
+- **Stufe B (bestanden):** 14 Integrationstests mit Home Assistant 2026.11 und virtuellen Geräten erfolgreich, einschließlich Service-Aufrufen und Entitätsregistrierung.
 - **Stufe C (optional):** Getrennte Home-Assistant-/evcc-Containerinstanz mit rein virtueller Hardware.
 - **Stufe D:** Freiwilliger Praxis-Betatest durch geeignete Tester, erst danach Veröffentlichung.
+
+## Sicherheitsregressionen (10.11.2026)
+
+Acht zusätzliche automatisierte HA-Testfälle validieren eigene Ladepause und kontrolliertes Wiederaufnehmen, fehlendes Ladebudget, manuelle Moduswechsel (`now`/`off`), konkurrierende Maximalstromregelung, 20-s-Rückmeldesicherung, Netzsensor-Ausfall und ausbleibende automatische Wiederaufnahme nach Reload. Die Tests verwenden ausschließlich virtuelle Entitäten und einen lokal abgefangenen `select.select_option`-Service. Der zwischenzeitlich entdeckte Diagnosefehler, der einen Sicherheitsabschaltgrund wieder überschrieb, wurde in Beta 5 auf diesem Zweig korrigiert.
 
 ## Sicherheit
 Dieser Zweig darf nicht mit dem stabil veröffentlichten Release verwechselt werden. Keine Zugangsdaten, IP-Adressen produktiver Geräte oder automatischen Verbindungen zum Heimnetz verwenden. Simulierte Ergebnisse sind kein Beweis für korrektes Verhalten einer echten Wallbox.
@@ -40,4 +44,4 @@ Im lokalen Entwicklungspaket `v15_evcc_ha_testlabor_2026_11.zip` sind inzwischen
 - `lab_ha/compose.yaml` und `lab_ha/config/configuration.yaml`: optionale Home-Assistant-Containerinstanz mit virtuellen Sensoren und Template-Selects
 - `lab_ha/README_DE.md`: Inbetriebnahme nur auf einem separaten Testrechner
 
-**Verifiziert:** 63 bestehende Logiktests, statische YAML-/Python-Prüfungen und **6 von 6 Integrationstests in einer echten Home-Assistant-2026.11-Testlaufzeit auf GitHub Actions**, einschließlich eines virtuellen `select.select_option`-Stellbefehls. [Erfolgreicher Testlauf](https://github.com/SchreiterC/ha-v15-lastmanagement/actions/runs/42878847595). **Noch offen:** Docker-Containeroberfläche starten und visuell prüfen sowie freiwillige echte evcc-/Wallbox-Tests. Python 3.13 in der lokalen Umgebung reicht nicht aus: HA 2026.11 erfordert Python 3.14.2 oder neuer. Die vollständigen Beta-5- und Testdateien liegen nun **in diesem Entwicklungszweig**. Die HA-Testumgebung verwendet die offizielle Bibliothek `pytest-homeassistant==2026.11.0`. Das veröffentlichte `main` bleibt unberührt.
+**Verifiziert:** 63 bestehende Logiktests, statische YAML-/Python-Prüfungen und **14 von 14 Integrationstests in einer echten Home-Assistant-2026.11-Testlaufzeit auf GitHub Actions**, einschließlich eines virtuellen `select.select_option`-Stellbefehls. [Erfolgreicher Testlauf](https://github.com/SchreiterC/ha-v15-lastmanagement/actions/runs/42880718053). **Noch offen:** Docker-Containeroberfläche starten und visuell prüfen sowie freiwillige echte evcc-/Wallbox-Tests. Python 3.13 in der lokalen Umgebung reicht nicht aus: HA 2026.11 erfordert Python 3.14.2 oder neuer. Die vollständigen Beta-5- und Testdateien liegen nun **in diesem Entwicklungszweig**. Die HA-Testumgebung verwendet die offizielle Bibliothek `pytest-homeassistant==2026.11.0`. Das veröffentlichte `main` bleibt unberührt.

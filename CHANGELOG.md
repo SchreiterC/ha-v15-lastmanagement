@@ -5,7 +5,10 @@
 - Dynamische Begrenzung des Maximalstroms, vorsichtige Stromerhöhung und optionales Pausieren/Wiederaufnehmen des Lademodus `smart`.
 - Schutz gegen unzuverlässige Messwerte, fehlende Befehlsbestätigung, externe Reglereingriffe und ungewollte Steuerung nach Neustarts.
 - Deutsche/englische Feldbeschriftungen und Erklärungen, zusätzliche Unit-Tests.
-- **Pilotstatus: nicht in einer echten Home-Assistant-/evcc-Installation getestet.**
+- Zusätzliche automatisierte Sicherheitsprüfungen für Ladepause, verzögerte Wiederfreigabe, zu wenig Restbudget, manuelle `now`-/`off`-Eingriffe, konkurrierende Ampere-Regler, fehlende Befehlsbestätigung, Messwertausfall und Neustart.
+- Korrektur: Der konkrete Grund einer evcc-Sicherheitsabschaltung bleibt in der Diagnose erhalten und wird erst bei erneuter Freigabe zurückgesetzt.
+- **14 von 14 Integrationstests mit Home Assistant 2026.11 und virtueller Wallbox erfolgreich; 63 Logiktests, Hassfest und HACS ebenfalls grün.**
+- **Pilotstatus: keine echte evcc-/Wallbox-Hardware getestet und keine visuelle Docker-Oberfläche verifiziert.**
 
 # Versionshistorie
 

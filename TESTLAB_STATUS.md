@@ -11,9 +11,10 @@
 
 ## Auf GitHub mit echter Home-Assistant-Testlaufzeit ausgeführt
 
-- **6 von 6 Integrationstests bestanden** unter Home Assistant 2026.11.0 mit Python 3.14.
+- **14 von 14 Integrationstests bestanden** unter Home Assistant 2026.11.0 mit Python 3.14.
 - Geprüft: Entitätsregistrierung, sichere Startsperre und Reload, Optionen-Konfigurationsfluss, keine Aktuation ohne Freigabe, Unload und evcc-Maximalstrom per simulierter HA-Service-API.
-- GitHub-Actions-Lauf: https://github.com/SchreiterC/ha-v15-lastmanagement/actions/runs/42878847595
+- Acht zusätzliche Sicherheitsfälle: V15-eigene Ladepause, Wiederfreigabe nach stabiler Leistungsreserve, dauerhaft fehlendes Ladebudget, manuelles `now`, konkurrierende Strombegrenzung, fehlende Befehlsbestätigung, manueller `off`-Modus ohne V15-Eigentum, Netzsensor-Ausfall während einer Pause und Wiederanlaufsperre nach Reload (ein Test ist parametrisiert).
+- GitHub-Actions-Lauf: https://github.com/SchreiterC/ha-v15-lastmanagement/actions/runs/42880718053
 - Standard-Prüfungen `python-checks` (63 Tests), `hassfest` und `validate-hacs` ebenfalls erfolgreich.
 
 ## Noch nicht ausgeführt
@@ -46,4 +47,4 @@ Siehe `lab_ha/README_DE.md`.
 
 ## Branch-Strategie
 
-Die veröffentlichte Beta 4 bleibt auf `main`. Der Entwicklungszweig `dev/evcc-simulator` dokumentiert das Vorhaben. Das Paket hier enthält die neue Beta-5-Codebasis und den vollständigen Testlabor-Aufbau. **Die vollständige Beta-5-Codebasis und die QA-Dateien sind auf dem Entwicklungszweig. Die 6 HA-Integrationstests haben den GitHub-Actions-Lauf erfolgreich bestanden. Die optionale Docker-Oberfläche und echte Wallbox wurden nicht getestet.**
+Die veröffentlichte Beta 4 bleibt auf `main`. Der Entwicklungszweig `dev/evcc-simulator` dokumentiert das Vorhaben. Das Paket hier enthält die neue Beta-5-Codebasis und den vollständigen Testlabor-Aufbau. **Die vollständige Beta-5-Codebasis und die QA-Dateien sind auf dem Entwicklungszweig. Die 14 HA-Integrationstests haben den GitHub-Actions-Lauf erfolgreich bestanden. Die optionale Docker-Oberfläche und echte Wallbox wurden nicht getestet.**
