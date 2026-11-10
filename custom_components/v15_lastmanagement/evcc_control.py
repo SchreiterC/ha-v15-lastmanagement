@@ -37,6 +37,7 @@ class V15EvccController:
         self.original_current = None
         self.last_command = None
         self.last_action = "Noch keine evcc-Aktion"
+        self.stop_reason = None  # Keep safety-stop reason visible until next opt-in.
         self.status = "evcc nicht konfiguriert" if not self.configured else "evcc-Regelung ausgeschaltet"
         self.target = None
         self.base_w = None
@@ -132,6 +133,7 @@ class V15EvccController:
         if self.config[CONF_EVCC_CURRENT].split(".")[0] not in ("select", "number"):
             raise ValueError("Maximalstrom muss eine select- oder number-Entität sein")
         self.enabled = True
+        self.stop_reason = None
         self.owned_pause = False
         self.original_current = snap["current_a"]
         self.last_confirmed_current = snap["current_a"]
@@ -147,6 +149,7 @@ class V15EvccController:
         # Never automatically boost charging after a failure or a manual OFF.
         # If V15 had paused the loadpoint, user must explicitly resume in evcc.
         self.enabled = False
+        self.stop_reason = reason
         self.status = reason
         self.increase_ready_since = None
         self.resume_ready_since = None
@@ -219,7 +222,10 @@ class V15EvccController:
             self.status = "evcc nicht konfiguriert"
             return None
         if not self.enabled:
-            self.status = "evcc-Regelung aus; Zielstrom nur berechnet" if preview else "evcc-Regelung ausgeschaltet"
+            self.status = self.stop_reason or (
+                "evcc-Regelung aus; Zielstrom nur berechnet"
+                if preview else "evcc-Regelung ausgeschaltet"
+            )
             return None
         if self.monitor.demo_data or self.monitor.simulation:
             self.status = "Demo/Probelauf: keine evcc-Stellbefehle"
