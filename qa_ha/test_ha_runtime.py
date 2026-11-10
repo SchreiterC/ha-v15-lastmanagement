@@ -182,6 +182,10 @@ async def test_real_ha_service_path_reduces_virtual_evcc_current(
     hass.services.async_register("select", "select_option", virtual_select_service)
     start = datetime(2026, 11, 10, 13, 0, tzinfo=timezone.utc)
     freezer.move_to(start)
+    # Refresh every virtual reading under the frozen clock; stale/future
+    # timestamps from fixture setup must not invalidate the evcc snapshot.
+    set_virtual_states(hass)
+    await hass.async_block_till_done()
     evcc_switch = entity_id(hass, v15, "switch", "evcc_live_control")
     await hass.services.async_call(
         "switch", "turn_on", {"entity_id": evcc_switch}, blocking=True
