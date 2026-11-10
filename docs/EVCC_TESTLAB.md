@@ -23,7 +23,7 @@ V15 mit echten Regelfunktionen, aber ausschließlich virtuellen Home-Assistant-E
 
 ## Teststufen
 - **Stufe A:** Rechenlogik und Controller mit Python-Fakes und beschleunigter Uhr. Lokal erste 63 Tests erfolgreich, darunter vier neue Szenariotests.
-- **Stufe B:** Home-Assistant-Integrationstests mit realem HA-Testframework und simulierten Geräten; dadurch auch Service- und Entitätsregistrierung prüfen.
+- **Stufe B (bestanden):** 6 Integrationstests mit Home Assistant 2026.11 und virtuellen Geräten erfolgreich, einschließlich Service-Aufrufen und Entitätsregistrierung.
 - **Stufe C (optional):** Getrennte Home-Assistant-/evcc-Containerinstanz mit rein virtueller Hardware.
 - **Stufe D:** Freiwilliger Praxis-Betatest durch geeignete Tester, erst danach Veröffentlichung.
 
@@ -40,4 +40,4 @@ Im lokalen Entwicklungspaket `v15_evcc_ha_testlabor_2026_11.zip` sind inzwischen
 - `lab_ha/compose.yaml` und `lab_ha/config/configuration.yaml`: optionale Home-Assistant-Containerinstanz mit virtuellen Sensoren und Template-Selects
 - `lab_ha/README_DE.md`: Inbetriebnahme nur auf einem separaten Testrechner
 
-**Verifiziert:** 63 bestehende Tests und statische YAML-/Python-Prüfungen. **Noch offen:** die neuen Tests in echter HA-Laufzeit ausführen und die Containeroberfläche prüfen. Python 3.13 in der lokalen Umgebung reicht nicht aus: HA 2026.11 erfordert Python 3.14.2 oder neuer. Die vollständigen Beta-5- und Testdateien liegen nun **in diesem Entwicklungszweig**. Die HA-Testumgebung verwendet die offizielle Bibliothek `pytest-homeassistant==2026.11.0`. Das veröffentlichte `main` bleibt unberührt.
+**Verifiziert:** 63 bestehende Logiktests, statische YAML-/Python-Prüfungen und **6 von 6 Integrationstests in einer echten Home-Assistant-2026.11-Testlaufzeit auf GitHub Actions**, einschließlich eines virtuellen `select.select_option`-Stellbefehls. [Erfolgreicher Testlauf](https://github.com/SchreiterC/ha-v15-lastmanagement/actions/runs/42878847595). **Noch offen:** Docker-Containeroberfläche starten und visuell prüfen sowie freiwillige echte evcc-/Wallbox-Tests. Python 3.13 in der lokalen Umgebung reicht nicht aus: HA 2026.11 erfordert Python 3.14.2 oder neuer. Die vollständigen Beta-5- und Testdateien liegen nun **in diesem Entwicklungszweig**. Die HA-Testumgebung verwendet die offizielle Bibliothek `pytest-homeassistant==2026.11.0`. Das veröffentlichte `main` bleibt unberührt.
