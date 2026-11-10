@@ -11,6 +11,7 @@ FIELDS = {
     "budget_kw": ("V15 Restbudget", "kW", "power"),
     "energy_kwh": ("V15 Netzbezug Viertelstunde", "kWh", "energy"),
     "coverage_percent": ("V15 Messabdeckung", "%", None),
+    "managed_off_count": ("V15 Verwaltete Abschaltungen", None, None),
 }
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -37,7 +38,7 @@ class V15Sensor(SensorEntity):
 
     @property
     def native_value(self):
-        if self.key != "coverage_percent" and not self.monitor.data.get("valid"):
+        if self.key not in ("coverage_percent", "managed_off_count") and not self.monitor.data.get("valid"):
             return None
         return self.monitor.data.get(self.key)
 
@@ -72,7 +73,13 @@ class V15Explanation(SensorEntity):
                 "measurement_coverage_percent": self.monitor.data.get("coverage_percent"),
                 "live_control_enabled": self.monitor.enabled,
                 "simulation_enabled": self.monitor.simulation,
-                "synthetic_demo_active": self.monitor.demo_data}
+                "synthetic_demo_active": self.monitor.demo_data,
+                "automatic_restore_configured": self.monitor.auto_restore_enabled,
+                "managed_off_switches": list(self.monitor.managed_off),
+                "restore_candidate": self.monitor.data.get("restore_candidate"),
+                "restore_ready": self.monitor.data.get("restore_ready", False),
+                "restore_status": self.monitor.data.get("restore_status"),
+                "pending_restore_confirmation": list(self.monitor.pending_on)}
 
     async def async_added_to_hass(self):
         self.async_on_remove(self.monitor.subscribe(self.async_write_ha_state))

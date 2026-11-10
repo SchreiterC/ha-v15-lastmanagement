@@ -26,5 +26,5 @@ jobs:
           python-version: '3.13'
       - name: Check Python syntax
         run: python -m compileall -q custom_components/v15_lastmanagement
-      - name: Run arithmetic unit tests
+      - name: Run V15 arithmetic and load-control unit tests
         run: python -m unittest discover -s tests -v

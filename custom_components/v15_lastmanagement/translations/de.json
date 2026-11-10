@@ -1,33 +1,86 @@
 {
   "title": "V15 Lastmanagement",
   "config": {
-    "step": {"user": {
-      "title": "V15 Lastmanagement einrichten",
-      "description": "Wähle einen Netzleistungssensor mit Einheit W oder kW. Positive Werte müssen Netzbezug bedeuten (sonst Vorzeichen umkehren). Die Abschaltung bleibt nach dem Start deaktiviert; der Probelauf schaltet keine Geräte.",
-      "data": {
-        "grid_sensor": "Netzleistungssensor",
-        "limit_kw": "Grenzwert für 15-Minuten-Durchschnitt (kW)",
-        "reserve_kw": "Sicherheitsreserve (kW)",
-        "reverse_sign": "Vorzeichen des Netzleistungssensors umkehren",
-        "stale_seconds": "Maximales Alter eines Messwerts (Sekunden)",
-        "load_switches": "Optional: abschaltbare Schalter (Reihenfolge beachten)"
+    "step": {
+      "user": {
+        "title": "V15 Lastmanagement einrichten",
+        "description": "Wähle den Netzleistungssensor und die Verbraucher für die Laststeuerung. Mit der Option zur automatischen Wiedereinschaltung darf V15 nur Schalter zurückschalten, die V15 zuvor selbst abgeschaltet hat. **Die aktive Laststeuerung ist nach jedem Neustart ausgeschaltet.**",
+        "data": {
+          "grid_sensor": "Netzleistungssensor",
+          "limit_kw": "Grenzwert für den 15-Minuten-Durchschnitt (kW)",
+          "reserve_kw": "Sicherheitsreserve (kW)",
+          "reverse_sign": "Vorzeichen des Netzleistungssensors umkehren",
+          "stale_seconds": "Maximales Alter eines Messwerts (Sekunden)",
+          "load_switches": "Abschaltbare Verbraucher (Schalter in Abschaltreihenfolge)",
+          "auto_restore": "Abgeschaltete Verbraucher automatisch wieder einschalten",
+          "restore_stable_seconds": "Erforderliche Dauer mit ausreichender Leistungsreserve (Sekunden)",
+          "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
+          "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)"
+        },
+        "data_description": {
+          "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
+          "limit_kw": "Maximal gewünschter Durchschnitt der bezogenen Netzleistung innerhalb einer festen Viertelstunde (00, 15, 30, 45 Minuten).",
+          "reserve_kw": "Sicherheitsabstand unterhalb des Grenzwerts. Beispiel: 5,0 kW Grenze minus 0,5 kW Reserve ergibt eine Zielgrenze von 4,5 kW.",
+          "reverse_sign": "Nur einschalten, wenn Dein Messsensor den Netzbezug mit negativen Vorzeichen ausgibt.",
+          "stale_seconds": "Ältere Messwerte gelten als ungültig. Bei ungültigen Messwerten darf V15 keine Schalter betätigen.",
+          "load_switches": "Nur unkritische, bewusst freigegebene Schalter auswählen. Die Reihenfolge bestimmt, welcher Verbraucher zuerst abgeschaltet wird.",
+          "auto_restore": "Nur Verbraucher, die V15 in diesem Lauf selbst abgeschaltet hat, dürfen nach ausreichender Leistungsreserve automatisch wieder eingeschaltet werden. Die aktive Laststeuerung muss dafür separat eingeschaltet sein.",
+          "restore_stable_seconds": "Die verfügbare Reserve muss so lange ohne Unterbrechung ausreichen, bevor V15 einen Verbraucher wieder einschalten darf.",
+          "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
+          "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss."
+        }
+      },
+      "restore": {
+        "title": "Geschätzte Leistungsaufnahme der Verbraucher (W)",
+        "description": "**Wozu dienen diese Werte?** V15 prüft vor dem automatischen Wiedereinschalten, ob die erwartete Geräteleistung **plus zusätzlichem Puffer** noch in das verfügbare Leistungsbudget passt.\n\n**Bitte für jeden Schalter die konservativ geschätzte maximale Leistungsaufnahme in Watt eingeben**, möglichst einschließlich einer möglichen Einschaltspitze. Kein Durchschnittsverbrauch und **keine kW**. Beispiel: Für ein Gerät mit maximal 600 W trägst Du `600` ein. Zu niedrige Angaben können zu einer Grenzwertüberschreitung führen.\n\n**Ausgewählte Schalter (in derselben Reihenfolge wie die Eingabefelder):**\n{switches}\n\nNur von V15 selbst abgeschaltete Schalter werden automatisch wieder eingeschaltet. Nach Neustart oder Konfigurationsänderung erfolgt keine nachträgliche Rückschaltung."
       }
-    }},
-    "error": {"reserve_too_high": "Die Reserve muss kleiner als der Grenzwert sein."},
-    "abort": {"already_configured": "V15 Lastmanagement ist bereits eingerichtet."}
+    },
+    "error": {
+      "reserve_too_high": "Die Sicherheitsreserve muss kleiner als der Grenzwert sein.",
+      "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren."
+    },
+    "abort": {
+      "already_configured": "V15 Lastmanagement ist bereits eingerichtet."
+    }
   },
   "options": {
-    "step": {"init": {
-      "title": "V15 Einstellungen ändern",
-      "data": {
-        "grid_sensor": "Netzleistungssensor",
-        "limit_kw": "Grenzwert (kW)",
-        "reserve_kw": "Sicherheitsreserve (kW)",
-        "reverse_sign": "Vorzeichen umkehren",
-        "stale_seconds": "Maximales Messwertalter (Sekunden)",
-        "load_switches": "Abschaltbare Schalter"
+    "step": {
+      "init": {
+        "title": "V15 Lastmanagement – Einstellungen",
+        "description": "Hier stellst Du die Abschalt- und Wiedereinschaltregeln ein. Die Wiedereinschaltung ist optional. Bei Aktivierung folgt eine zweite Seite zur **geschätzten maximalen Leistungsaufnahme in Watt** pro ausgewähltem Schalter. Eine Neukonfiguration setzt den bisherigen Rückschaltstatus zurück.",
+        "data": {
+          "grid_sensor": "Netzleistungssensor",
+          "limit_kw": "Grenzwert für den 15-Minuten-Durchschnitt (kW)",
+          "reserve_kw": "Sicherheitsreserve (kW)",
+          "reverse_sign": "Vorzeichen des Netzleistungssensors umkehren",
+          "stale_seconds": "Maximales Alter eines Messwerts (Sekunden)",
+          "load_switches": "Abschaltbare Verbraucher (Schalter in Abschaltreihenfolge)",
+          "auto_restore": "Abgeschaltete Verbraucher automatisch wieder einschalten",
+          "restore_stable_seconds": "Erforderliche Dauer mit ausreichender Leistungsreserve (Sekunden)",
+          "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
+          "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)"
+        },
+        "data_description": {
+          "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
+          "limit_kw": "Maximal gewünschter Durchschnitt der bezogenen Netzleistung innerhalb einer festen Viertelstunde (00, 15, 30, 45 Minuten).",
+          "reserve_kw": "Sicherheitsabstand unterhalb des Grenzwerts. Beispiel: 5,0 kW Grenze minus 0,5 kW Reserve ergibt eine Zielgrenze von 4,5 kW.",
+          "reverse_sign": "Nur einschalten, wenn Dein Messsensor den Netzbezug mit negativen Vorzeichen ausgibt.",
+          "stale_seconds": "Ältere Messwerte gelten als ungültig. Bei ungültigen Messwerten darf V15 keine Schalter betätigen.",
+          "load_switches": "Nur unkritische, bewusst freigegebene Schalter auswählen. Die Reihenfolge bestimmt, welcher Verbraucher zuerst abgeschaltet wird.",
+          "auto_restore": "Nur Verbraucher, die V15 in diesem Lauf selbst abgeschaltet hat, dürfen nach ausreichender Leistungsreserve automatisch wieder eingeschaltet werden. Die aktive Laststeuerung muss dafür separat eingeschaltet sein.",
+          "restore_stable_seconds": "Die verfügbare Reserve muss so lange ohne Unterbrechung ausreichen, bevor V15 einen Verbraucher wieder einschalten darf.",
+          "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
+          "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss."
+        }
+      },
+      "restore": {
+        "title": "Geschätzte Leistungsaufnahme der Verbraucher (W)",
+        "description": "**Wozu dienen diese Werte?** V15 prüft vor dem automatischen Wiedereinschalten, ob die erwartete Geräteleistung **plus zusätzlichem Puffer** noch in das verfügbare Leistungsbudget passt.\n\n**Bitte für jeden Schalter die konservativ geschätzte maximale Leistungsaufnahme in Watt eingeben**, möglichst einschließlich einer möglichen Einschaltspitze. Kein Durchschnittsverbrauch und **keine kW**. Beispiel: Für ein Gerät mit maximal 600 W trägst Du `600` ein. Zu niedrige Angaben können zu einer Grenzwertüberschreitung führen.\n\n**Ausgewählte Schalter (in derselben Reihenfolge wie die Eingabefelder):**\n{switches}\n\nNur von V15 selbst abgeschaltete Schalter werden automatisch wieder eingeschaltet. Nach Neustart oder Konfigurationsänderung erfolgt keine nachträgliche Rückschaltung."
       }
-    }},
-    "error": {"reserve_too_high": "Die Reserve muss kleiner als der Grenzwert sein."}
+    },
+    "error": {
+      "reserve_too_high": "Die Sicherheitsreserve muss kleiner als der Grenzwert sein.",
+      "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren."
+    }
   }
 }

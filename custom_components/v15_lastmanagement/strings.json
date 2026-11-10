@@ -1,33 +1,86 @@
 {
   "title": "V15 Lastmanagement",
   "config": {
-    "step": {"user": {
-      "title": "V15 Lastmanagement einrichten",
-      "description": "Wähle einen Netzleistungssensor mit Einheit W oder kW. Positive Werte müssen Netzbezug bedeuten (sonst Vorzeichen umkehren). Die Abschaltung bleibt nach dem Start deaktiviert; der Probelauf schaltet keine Geräte.",
-      "data": {
-        "grid_sensor": "Netzleistungssensor",
-        "limit_kw": "Grenzwert für 15-Minuten-Durchschnitt (kW)",
-        "reserve_kw": "Sicherheitsreserve (kW)",
-        "reverse_sign": "Vorzeichen des Netzleistungssensors umkehren",
-        "stale_seconds": "Maximales Alter eines Messwerts (Sekunden)",
-        "load_switches": "Optional: abschaltbare Schalter (Reihenfolge beachten)"
+    "step": {
+      "user": {
+        "title": "Configure V15 Lastmanagement",
+        "description": "Choose a grid power sensor and approved load switches. Automatic restoration only switches loads back on if V15 itself switched them off earlier in the same run. **Live load control is disabled after every restart.**",
+        "data": {
+          "grid_sensor": "Grid power sensor",
+          "limit_kw": "15-minute average demand threshold (kW)",
+          "reserve_kw": "Safety reserve (kW)",
+          "reverse_sign": "Reverse grid sensor sign",
+          "stale_seconds": "Maximum age of a measurement (seconds)",
+          "load_switches": "Switches eligible for load shedding (in priority order)",
+          "auto_restore": "Automatically switch previously shed loads back on",
+          "restore_stable_seconds": "Required period of sufficient headroom (seconds)",
+          "restore_min_off_seconds": "Minimum off duration per load (seconds)",
+          "restore_margin_watts": "Additional power margin for restoration (W)"
+        },
+        "data_description": {
+          "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
+          "limit_kw": "Target maximum average grid import during each fixed 15-minute interval starting at :00, :15, :30 or :45.",
+          "reserve_kw": "Safety headroom below the threshold. For example, 5.0 kW limit minus 0.5 kW reserve gives a 4.5 kW target.",
+          "reverse_sign": "Enable only if your sensor reports grid import as a negative value.",
+          "stale_seconds": "Older measurements are treated as invalid. V15 does not switch any loads when measurements are invalid.",
+          "load_switches": "Select only explicitly approved, non-critical switches. The order determines which load is shed first.",
+          "auto_restore": "Only loads that V15 itself switched off in this run can be restored after sufficient power headroom. Live control must also be enabled separately.",
+          "restore_stable_seconds": "Available headroom must remain sufficient for this long before restoration is permitted.",
+          "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
+          "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on."
+        }
+      },
+      "restore": {
+        "title": "Estimated maximum power per load (W)",
+        "description": "**Why are these values needed?** Before switching a load back on, V15 checks whether its expected power **plus an additional safety margin** fits into the available power budget.\n\n**Enter a conservative maximum power estimate in watts for each switch**, preferably including any startup surge. Do not enter average consumption or **kW**. Example: Enter `600` for a load that can draw up to 600 W. Underestimating the power can cause a threshold exceedance.\n\n**Selected switches (same order as the input fields):**\n{switches}\n\nOnly loads previously switched off by V15 are restored automatically. Restarting or changing settings does not restore earlier loads."
       }
-    }},
-    "error": {"reserve_too_high": "Die Reserve muss kleiner als der Grenzwert sein."},
-    "abort": {"already_configured": "V15 Lastmanagement ist bereits eingerichtet."}
+    },
+    "error": {
+      "reserve_too_high": "The safety reserve must be lower than the threshold.",
+      "restore_requires_loads": "Select at least one load switch to enable automatic restoration."
+    },
+    "abort": {
+      "already_configured": "V15 Lastmanagement is already configured."
+    }
   },
   "options": {
-    "step": {"init": {
-      "title": "V15 Einstellungen ändern",
-      "data": {
-        "grid_sensor": "Netzleistungssensor",
-        "limit_kw": "Grenzwert (kW)",
-        "reserve_kw": "Sicherheitsreserve (kW)",
-        "reverse_sign": "Vorzeichen umkehren",
-        "stale_seconds": "Maximales Messwertalter (Sekunden)",
-        "load_switches": "Abschaltbare Schalter"
+    "step": {
+      "init": {
+        "title": "V15 Lastmanagement – Settings",
+        "description": "Configure load shedding and automatic restoration. Restoration is optional. If enabled, a second page asks for **estimated maximum power in watts** for each selected switch. Changing settings resets the current restoration state.",
+        "data": {
+          "grid_sensor": "Grid power sensor",
+          "limit_kw": "15-minute average demand threshold (kW)",
+          "reserve_kw": "Safety reserve (kW)",
+          "reverse_sign": "Reverse grid sensor sign",
+          "stale_seconds": "Maximum age of a measurement (seconds)",
+          "load_switches": "Switches eligible for load shedding (in priority order)",
+          "auto_restore": "Automatically switch previously shed loads back on",
+          "restore_stable_seconds": "Required period of sufficient headroom (seconds)",
+          "restore_min_off_seconds": "Minimum off duration per load (seconds)",
+          "restore_margin_watts": "Additional power margin for restoration (W)"
+        },
+        "data_description": {
+          "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
+          "limit_kw": "Target maximum average grid import during each fixed 15-minute interval starting at :00, :15, :30 or :45.",
+          "reserve_kw": "Safety headroom below the threshold. For example, 5.0 kW limit minus 0.5 kW reserve gives a 4.5 kW target.",
+          "reverse_sign": "Enable only if your sensor reports grid import as a negative value.",
+          "stale_seconds": "Older measurements are treated as invalid. V15 does not switch any loads when measurements are invalid.",
+          "load_switches": "Select only explicitly approved, non-critical switches. The order determines which load is shed first.",
+          "auto_restore": "Only loads that V15 itself switched off in this run can be restored after sufficient power headroom. Live control must also be enabled separately.",
+          "restore_stable_seconds": "Available headroom must remain sufficient for this long before restoration is permitted.",
+          "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
+          "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on."
+        }
+      },
+      "restore": {
+        "title": "Estimated maximum power per load (W)",
+        "description": "**Why are these values needed?** Before switching a load back on, V15 checks whether its expected power **plus an additional safety margin** fits into the available power budget.\n\n**Enter a conservative maximum power estimate in watts for each switch**, preferably including any startup surge. Do not enter average consumption or **kW**. Example: Enter `600` for a load that can draw up to 600 W. Underestimating the power can cause a threshold exceedance.\n\n**Selected switches (same order as the input fields):**\n{switches}\n\nOnly loads previously switched off by V15 are restored automatically. Restarting or changing settings does not restore earlier loads."
       }
-    }},
-    "error": {"reserve_too_high": "Die Reserve muss kleiner als der Grenzwert sein."}
+    },
+    "error": {
+      "reserve_too_high": "The safety reserve must be lower than the threshold.",
+      "restore_requires_loads": "Select at least one load switch to enable automatic restoration."
+    }
   }
 }

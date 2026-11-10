@@ -1,14 +1,36 @@
 # Versionshistorie
 
+## 0.3.5b4 – Beta 4: Deutschsprachige Einstellungen und Hilfetexte (2026-11-10)
+
+- Einheitliche deutsche und englische Bezeichnungen für die Abschalt- und Wiedereinschaltoptionen.
+- Erläuterungen direkt an allen Feldern der Erstkonfiguration und der Optionen (`data_description`).
+- Zweiter Dialog mit Hinweis auf Watt, maximal zu erwartende Geräteleistung und mögliche Einschaltspitzen. Die ausgewählten Schalter werden im Beschreibungstext genannt.
+- Übersetzungen unter `translations/de.json` und `translations/en.json` vollständig abgestimmt; `strings.json` als englische Quellvorlage.
+- Keine Änderungen an der Abschalt-/Rückschaltlogik und den bestehenden Entitätskennungen.
+
+## 0.3.5b3 – Beta 3: automatische Wiedereinschaltung (2026-11-05)
+
+- **Optionale Rückschaltung:** V15 darf von ihm selbst abgeschaltete und bestätigt ausgeschaltete Schalter wieder einschalten, wenn die prognostizierte Viertelstundenlast und das begrenzte Restbudget dafür Raum lassen.
+- Leistungsaufnahme **je Schalter** über einen zusätzlichen Schritt des Konfigurationsdialogs einstellbar.
+- Konfigurierbare Mindestausschaltdauer, Dauer stabiler Leistungsreserve und zusätzlicher Watt-Puffer.
+- Kein automatischer Einschaltvorgang innerhalb der letzten 90 Sekunden einer Viertelstunde.
+- Nur ein Schalter gleichzeitig, Rückschaltung in umgekehrter Abschaltreihenfolge; nach jeder Rückschaltung mindestens 60 s Abstand.
+- Keine Rückschaltung bei ungültigen Messwerten, fehlender Messabdeckung, Demo oder Probelauf; kein Einschalten fremd/manuell ausgeschalteter Geräte.
+- Sicherheitsverhalten: Nach Neustart, Update oder Konfigurations-Reload wird die Live-Steuerung deaktiviert und die bisherige Abschalthistorie nicht rekonstruiert.
+- Neuer Sensor „V15 Verwaltete Abschaltungen“; Diagnose um Rückschaltstatus erweitert. Alle früheren `unique_id` bleiben bestehen.
+- Zusätzliche Unit-Tests für Rückschaltbedingungen und simulierte Schalterereignisse.
+- Die automatische Rückschaltung ist **nicht** in Home Assistant praktisch verifiziert. Weiterhin öffentliche Beta, keine abrechnungsgenaue Leistungsbegrenzung.
+
+## 0.3.5b2 – GitHub-Metadaten-Korrekturen (2026-11-04)
+
+- Integration Manifest für HACS- und Hassfest-Prüfung korrekt sortiert und Repository-Links/Codeowner ergänzt.
+- Regelungslogik unverändert gegenüber Beta 1.
+
 ## 0.3.5b1 – öffentliche Beta-Vorlage (2026-11-04)
 
-- Projektstruktur für HACS und GitHub angelegt.
-- V15-Markengrafiken im Integrationsordner (`brand/`) ergänzt.
-- Manifest auf das geplante Repository vorbereitet; GitHub-Owner vor Veröffentlichung einsetzen.
-- HACS- und Hassfest-Workflow sowie lokale Tests ergänzt.
-- Versionsanzeige des logischen Geräts angeglichen.
-- Viertelstunden- und Abschaltlogik aus 0.3.4 unverändert übernommen.
+- Projektstruktur für HACS und GitHub, Branding und Tests ergänzt.
+- Viertelstunden- und Abschaltlogik aus 0.3.4 übernommen.
 
 ## 0.3.4
 
-- Restbudget auf maximalen Grenzwert abzüglich Reserve begrenzt; Ausgabe bei ungenügender Messabdeckung unterdrückt.
+- Restbudget auf Grenzwert abzüglich Reserve begrenzt; Ausgabe bei ungenügender Messabdeckung unterdrückt.

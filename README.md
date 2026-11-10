@@ -2,72 +2,83 @@
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 
-**Öffentliche Testversion 0.3.5b1 – nicht als abrechnungsgenauer oder zertifizierter Leistungsbegrenzer verwenden.**
+**Beta-Testversion 0.3.5b4. Keine zertifizierte Begrenzung abrechnungsrelevanter Lastspitzen.**
 
-V15 überwacht den Netzbezug in festen, an der Uhrzeit ausgerichteten 15-Minuten-Blöcken (00/15/30/45). Das Projekt stellt sechs Messwertsensoren, einen Diagnosesensor, drei Binärsensoren sowie drei Steuerschalter bereit. Der Anwender wählt einen vorhandenen Leistungssensor und optional schaltbare, unkritische Verbraucher im Einrichtungsdialog.
+V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt die voraussichtliche Viertelstundenleistung und kann bei drohender Überschreitung ausgewählte **unkritische** Home-Assistant-Schalter abschalten. Ab Beta 3 ist eine **optionale automatische Wiedereinschaltung** möglich.
 
-## Fähigkeiten
+## Funktionen
 
-- Viertelstundenausrichtung nach lokaler Home-Assistant-Zeit, statt gleitendem Zeitfenster.
-- Positive Netzbezugsleistung in W oder kW; umgekehrtes Vorzeichen konfigurierbar.
-- Messabdeckung, Durchschnitt, Projektion, Energie, Restbudget und verständliche Diagnose.
-- Simulation mit echten Messwerten ohne Eingriff in Geräte.
-- Demo mit künstlichen Daten ohne reale Schalthandlungen.
-- Optionales, ausdrücklich aktiviertes **einseitiges Abschalten** gewählter `switch`-Entitäten nach Priorität. Kein automatisches Wiedereinschalten.
-- Aktive Abschaltung bleibt nach jedem Neustart oder Neuladen ausgeschaltet.
+- Frei wählbarer Leistungssensor (W/kW), Vorzeichenumkehr und maximale Messwertalterung.
+- 15-Minuten-Durchschnitt, Prognose, Verbrauch, Messabdeckung und konservatives Restbudget.
+- Individuell konfigurierbare Leistungsgrenze und Reserve.
+- Priorisierte Abschaltung mehrerer `switch`-Entitäten.
+- **Neu:** Wiedereinschalten in umgekehrter Abschaltreihenfolge, wenn die Reserve nachweisbar ausreicht.
+- Simulation mit echten Messwerten ohne Schaltung und Demo mit künstlichen Messwerten.
+- Diagnose mit verwalteten Abschaltungen, Rückschaltkandidat und Wartegrund.
+- 14 Entitäten (7 reguläre Messsensoren einschließlich Diagnose + 1 neuer Abschaltungszähler, 3 Binärsensoren, 3 Steuerschalter). Die bestehenden `unique_id`s bleiben unverändert.
 
-## Installation über HACS (benutzerdefiniertes Repository)
+## Installation und Update über HACS
 
-1. In HACS über das Menü **Benutzerdefinierte Repositories** die URL des veröffentlichten GitHub-Repositories eintragen, Kategorie **Integration**.
-2. **V15 Lastmanagement** herunterladen und Home Assistant neu starten (insbesondere bei Updates).
-3. Unter **Einstellungen → Geräte & Dienste → Integration hinzufügen** „V15 Lastmanagement“ auswählen. Bei einem bereits vorhandenen Konfigurationseintrag erscheint die Integration unmittelbar.
-4. Netzleistungssensor, Grenzwert, Reserve und gegebenenfalls abschaltbare Schalter auswählen.
-5. Zuerst die Simulation ohne Schalten testen.
+1. Das Repository `https://github.com/SchreiterC/ha-v15-lastmanagement` als benutzerdefiniertes Repository vom Typ **Integration** hinzufügen, falls noch nicht vorhanden.
+2. V15 Lastmanagement in HACS herunterladen oder auf die neue Version aktualisieren.
+3. Home Assistant vollständig neu starten.
+4. Bei Neuinstallation V15 unter **Einstellungen → Geräte & Dienste** einrichten. Bestehende Installationen **nicht löschen**. Die 13 bisherigen Entitäten behalten ihre Identität, zusätzlich erscheint „V15 Verwaltete Abschaltungen“.
+5. Bei einem Upgrade von Beta 2: **V15 → Konfigurieren/Optionen** öffnen, um die neuen Wiedereinschaltoptionen zu setzen. Standardmäßig bleibt die Wiedereinschaltung deaktiviert.
 
-Manuell: den Ordner `custom_components/v15_lastmanagement` in das entsprechende Home-Assistant-Konfigurationsverzeichnis kopieren und Home Assistant neu starten.
+## Sprache und Erklärung im Einrichtungsdialog
 
-## Einstellungen
+Die Einstellungsseiten sind auf **Deutsch und Englisch** übersetzt. Die Sprache richtet sich nach der eingestellten Sprache des Home-Assistant-Benutzers. Alle Felder enthalten nun zusätzliche Erläuterungen. Auf der zweiten Seite erklärt V15 die benötigten Leistungswerte in **Watt**, zeigt die ausgewählten Schalter und warnt vor zu kleinen Schätzwerten.
 
-| Option | Funktion |
-|---|---|
-| Netzleistungssensor | W/kW; positive Werte müssen Netzbezug anzeigen |
-| Grenzwert (kW) | Zielwert für die feste Viertelstunde, standardmäßig 5 kW |
-| Reserve (kW) | Sicherheitsabstand zum Zielwert, standardmäßig 0,5 kW |
-| Vorzeichen umkehren | Für Netzzähler, deren Netzbezug negative Werte liefert |
-| Maximales Sensoralter | Ab welcher Verzögerung Messwerte ungültig werden |
-| Abschaltbare Schalter | Optional, in Abschaltreihenfolge; nur `switch`-Entitäten |
+Nach einem manuellen Austausch der Integrationsdateien ist ein **vollständiger Home-Assistant-Neustart** erforderlich. Bei nicht aktualisierten Texten die Seite neu laden (gegebenenfalls Browser-Cache aktualisieren). Bei einem Upgrade über HACS dieselben Schritte nach dem Download ausführen.
 
-## Drei Betriebsmodi
+## Konfiguration der Wiedereinschaltung
 
-- **V15 Demo mit künstlichen Messwerten**: zeigt einen synthetischen Lastverlauf, schaltet nie reale Verbraucher.
-- **V15 Probelauf ohne Schalten**: wertet echte Sensoren aus und beschreibt eine mögliche Abschaltentscheidung; keine Schaltbefehle.
-- **V15 Aktive Lastabschaltung**: schaltet bei einer prognostizierten Grenzwertüberschreitung ausgewählte eingeschaltete Schalter ab, sofern Messwerte mindestens 60 Sekunden und zu mindestens 95 % des laufenden Fensters abgedeckt sind. Zwischen Abschaltversuchen liegen mindestens 30 Sekunden. Manuelles Wiedereinschalten erforderlich.
+Unter **Einstellungen → Geräte & Dienste → V15 Lastmanagement → Konfigurieren**:
 
-**Nie kritische Verbraucher (medizinische Geräte, Server mit Datenverlustgefahr, Sicherheitsgeräte, Heizungsschutz, etc.) als abschaltbare Lasten konfigurieren.** Keine parallel laufende Steuerung derselben Schalter ohne abgestimmte Prioritäten verwenden.
+1. Wie bisher Netzsensor, 15-Minuten-Grenze, Reserve und Abschalt-Schalter wählen.
+2. **Automatische Wiedereinschaltung erlauben** aktivieren. Ohne diese ausdrückliche Freigabe werden Lasten weiterhin nur abgeschaltet.
+3. Mindest-Ausschaltdauer (Standard **180 s**), notwendige stabile Reserve (Standard **90 s**) und zusätzlichen Puffer (Standard **200 W**) wählen.
+4. Im nächsten Dialog **für jeden konfigurierten Schalter die konservativ erwartete Leistungsaufnahme in Watt** eintragen. Berücksichtige Anlaufspitzen und die reale Wirkung auf den Netzbezug. Bei zu niedriger Schätzung sind Überschreitungen möglich.
+5. Die **V15 Aktive Lastabschaltung** bleibt auch bei aktivierter automatischer Wiedereinschaltung nach jedem HA-Neustart ausgeschaltet. Für echte Schaltvorgänge muss sie gezielt eingeschaltet werden.
 
-## Berechnung und Grenzen
+Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerungsbudget höchstens bei 4,5 kW. Ein Gerät mit eingetragener Leistung von 600 W und 200 W zusätzlichem Puffer darf nur eingeschaltet werden, wenn der aktuelle Netzbezug **und** die verbleibende Viertelstundenenergie genügend Platz für insgesamt weitere 800 W lassen. Der Puffer ist eine zusätzliche Vorsichtsmaßnahme und keine Garantie.
 
-- Ein Zeitblock beginnt auf :00, :15, :30 oder :45; die Werte werden beim nächsten Block neu gebildet.
-- Messleistung wird aus regelmäßigen Abfragen integriert; die erste unvollständige Viertelstunde und Zeiträume mit Sensorlücken sind nicht abrechnungsgenau.
-- Netzbezug wird mit `max(0, Leistung)` berechnet; Einspeisung wird **nicht** dagegen saldiert.
-- Prognose nimmt an, dass die aktuelle Netzbezugsleistung bis zum Viertelstundenende konstant bleibt.
-- Restbudget ist auf `Grenzwert - Reserve` beschränkt, damit gegen Quartalsende keine extremen rechnerischen Kurzzeitwerte als Steuerungsbudget ausgegeben werden.
-- **Kein universeller Spitzenlastschutz mit Echtzeitgarantie.** Lokale Messintervalle, Messabweichungen und Gerätereaktionszeiten können den tatsächlichen Zählerwert abweichen lassen.
-- Kein automatisches Wiedereinschalten; keine evcc-Ladestromregelung; keine Victron-Netzladung; keine persistente Rekonstruktion verpasster Messungen.
-- Bei Sensorfehlern stoppt die aktive Abschaltung, bereits ausgeschaltete Lasten bleiben ausgeschaltet.
+### Wie V15 wieder einschaltet
 
-## Vor dem produktiven Einsatz
+- Es kommen **ausschließlich Schalter infrage, die V15 in diesem Lauf selbst ausgeschaltet hat und deren OFF-Zustand bestätigt wurde**. Bereits zuvor manuell abgeschaltete Geräte werden nicht eingeschaltet.
+- Bei manueller bzw. externer Einschaltung endet die Zuständigkeit von V15 für dieses Gerät.
+- Der Netzleistungssensor muss gültig sein. Mindestens 60 Sekunden und 95 % Messabdeckung der laufenden Viertelstunde sind erforderlich. Demo und Probelauf schalten nie.
+- Die aktuelle Leistung **plus** eingetragene Geräteleistung **plus** zusätzlichen Puffer muss unter dem konservativ begrenzten Restbudget liegen. Eine gefährdete Viertelstundenprognose blockiert die Wiedereinschaltung.
+- Die Reserve muss mindestens 90 Sekunden **durchgehend** ausreichend sein, das Gerät mindestens 180 Sekunden ausgeschaltet (beide Zeiten konfigurierbar).
+- In den letzten 90 Sekunden einer Viertelstunde startet V15 keine Rückschaltung, damit die neue Viertelstunde nicht mit einer unkontrolliert frisch zugeschalteten Last beginnt.
+- Die Rückschaltung erfolgt einzeln, in **umgekehrter Abschaltreihenfolge**. Nach jeder Rückschaltung wird mindestens 60 Sekunden gewartet, bevor ein weiteres Gerät eingeschaltet werden darf.
+- Der Status wird als Text in den Attributen von **V15 Diagnose** angezeigt. Der Sensor **V15 Verwaltete Abschaltungen** zählt die von V15 verwalteten ausgeschalteten Schalter.
 
-Die Messwertanzeige und Berechnung wurden an einer realen Installation beobachtet. **Die echte Abschaltung, das Verhalten bei unzuverlässigen Sensoren, der vollständige Viertelstundenwechsel sowie HACS- und CI-Installation müssen in einer Home-Assistant-Testinstallation validiert werden.** Diese Veröffentlichung ist ausdrücklich eine Beta.
+**Wichtige Einschränkung bei Neustart, Update und Konfigurationsänderung:** V15 vergisst die in diesem Lauf selbst abgeschalteten Verbraucher bewusst beim Neuladen der Integration und lässt sie ausgeschaltet. Sie werden nicht nachträglich automatisch eingeschaltet. Das verhindert eine unkontrollierte Wiedereinschaltung nach Neustarts. Prüfe sie dann manuell. Auch das Deaktivieren der aktiven Laststeuerung schaltet bereits ausgeschaltete Geräte **nicht** sofort wieder ein.
 
-## Updates, Rückbau und Datenschutz
+## Sicherheit und Grenzen
 
-Updates der Integrationsdateien erfordern einen Neustart. Zum Entfernen zuerst den V15-Konfigurationseintrag in Home Assistant löschen, anschließend die Integration aus HACS entfernen. Historische Statistikdaten und benutzerdefinierte Dashboards werden dadurch nicht zwangsläufig gelöscht. V15 benötigt keine Cloud-Zugangsdaten und sendet selbst keine Telemetrie; die bereitgestellten Home-Assistant-Entitäten stammen aus der lokalen Installation.
+- **Keine sicherheitskritischen Lasten** schalten (medizinische Geräte, Gefrierschränke mit Risiko des Warenverlusts, Server, Alarmtechnik, Heizungsschutz etc.).
+- Die Einschaltentscheidung verwendet **eine geschätzte Leistungsaufnahme pro Schalter**. Ein `switch` liefert nicht zuverlässig die tatsächliche Leistung oder Einschaltspitze. Selbst bei korrekten Schätzungen können PV, Speicher oder andere Lasten unerwartet reagieren.
+- Das aktuelle elektrische Restbudget ist ein konservativ gekappter Wert. Die V15-Berechnung ist kein geeichter Viertelstunden-Zähler; keine Garantie für die Einhaltung eines Netzbetreiber-Limits.
+- Die Messintegration berücksichtigt nur positiven Netzbezug; Einspeisung wird nicht gegengerechnet.
+- Netzlast, Gerätereaktion und Schaltzustände können zeitlich verzögert sein. Nicht bestätigte Schaltvorgänge werden protokolliert, und Wiedereinschaltbefehle werden nicht unbegrenzt wiederholt.
+- Bei fehlenden oder veralteten Netzleistungsdaten werden **weder Abschaltung noch Wiedereinschaltung** ausgelöst. Bereits ausgeschaltete Geräte bleiben vorerst aus.
+- Gleichzeitige andere Automationen für dieselben Schalter sind zu vermeiden. V15 steuert keine EV-Ladestromstufen oder Victron-Speicherparameter.
 
-## Technische Details
+## Sichere Testreihenfolge
 
-Domain: `v15_lastmanagement`. Integrationsklasse: `hub`. Konfiguration über UI; keine YAML-Änderungen erforderlich. Die 13 Entitäten behalten bei Updates ihre bisherigen `unique_id`-Werte. Ab Home Assistant 2026.3 unterstützt der lokale Ordner `brand/` die Darstellung von Integrations-Icons. Ältere Versionen können das Logo nicht lokal darstellen.
+1. Backup erstellen, nur eine unkritische Teststeckdose konfigurieren, mit Probelauf starten.
+2. Aktive Lastabschaltung einschalten und bei absichtlich niedrigem Grenzwert die bestätigte Abschaltung beobachten.
+3. Zum Test der Wiedereinschaltung **nicht zwischendurch die V15-Einstellungen ändern**, da das die Integration neu lädt und die Liste abgeschalteter Geräte löscht.
+4. Die übrige Hauslast außerhalb von V15 senken, bis die Reserve für *Geräteleistung + Puffer* ausreicht. Nach Mindest-Ausschaltdauer und stabiler Reserve muss der Schalter einmalig zurückgeschaltet werden.
+5. Danach aktive Lastabschaltung deaktivieren und Grenzwerte wieder auf normale Werte stellen.
+6. Testfälle mit ungültigen Messwerten und Neustart separat durchführen. Der Code wurde mit Unit-Tests geprüft, der neue Wiedereinschaltpfad ist **noch nicht in einer laufenden Home-Assistant-Installation bestätigt**.
+
+## Fehler und Vorschläge
+
+Bitte ein [GitHub Issue](https://github.com/SchreiterC/ha-v15-lastmanagement/issues) eröffnen und Home-Assistant-Version, V15-Version sowie Diagnose/Protokoll (ohne persönliche Daten und Zugangsdaten) ergänzen.
 
 ## Lizenz
 
-Quellcode unter MIT-Lizenz. Das beigefügte V15-Logo ist eine eigens erstellte Projektgrafik; eine gesonderte Kennzeichen- oder Markenfreigabe wird damit nicht behauptet.
+MIT für den Quellcode. Das Logo ist eine projektbezogene Grafik.
