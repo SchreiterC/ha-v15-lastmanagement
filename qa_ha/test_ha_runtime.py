@@ -182,10 +182,14 @@ async def test_real_ha_service_path_reduces_virtual_evcc_current(
     hass.services.async_register("select", "select_option", virtual_select_service)
     start = datetime(2026, 11, 10, 13, 0, tzinfo=timezone.utc)
     freezer.move_to(start)
-    # Refresh every virtual reading under the frozen clock; stale/future
-    # timestamps from fixture setup must not invalidate the evcc snapshot.
+    # HA preserves last_updated when only reporting the same state. Recreate
+    # the virtual states under the frozen test clock so freshness is genuine.
+    for lab_entity in (GRID, CURRENT, MODE, CHARGING, PHASES):
+        hass.states.async_remove(lab_entity)
     set_virtual_states(hass)
     await hass.async_block_till_done()
+    from homeassistant.util import dt as dt_util
+    assert abs((dt_util.utcnow() - hass.states.get(CHARGING).last_updated).total_seconds()) < 5
     evcc_switch = entity_id(hass, v15, "switch", "evcc_live_control")
     await hass.services.async_call(
         "switch", "turn_on", {"entity_id": evcc_switch}, blocking=True
