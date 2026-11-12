@@ -1,16 +1,16 @@
-## v0.3.5b5 – evcc Pilot (nicht veröffentlicht)
-
-- Optionaler evcc-Einrichtungsdialog mit frei wählbaren Home-Assistant-Entitäten.
-- Neue, separat aktivierbare evcc-Ladestromsteuerung und Zielstromsensor.
-- Dynamische Begrenzung des Maximalstroms, vorsichtige Stromerhöhung und optionales Pausieren/Wiederaufnehmen des Lademodus `smart`.
-- Schutz gegen unzuverlässige Messwerte, fehlende Befehlsbestätigung, externe Reglereingriffe und ungewollte Steuerung nach Neustarts.
-- Deutsche/englische Feldbeschriftungen und Erklärungen, zusätzliche Unit-Tests.
-- Zusätzliche automatisierte Sicherheitsprüfungen für Ladepause, verzögerte Wiederfreigabe, zu wenig Restbudget, manuelle `now`-/`off`-Eingriffe, konkurrierende Ampere-Regler, fehlende Befehlsbestätigung, Messwertausfall und Neustart.
-- Korrektur: Der konkrete Grund einer evcc-Sicherheitsabschaltung bleibt in der Diagnose erhalten und wird erst bei erneuter Freigabe zurückgesetzt.
-- **14 von 14 Integrationstests mit Home Assistant 2026.11 und virtueller Wallbox erfolgreich; 63 Logiktests, Hassfest und HACS ebenfalls grün.**
-- **Pilotstatus: keine echte evcc-/Wallbox-Hardware getestet und keine visuelle Docker-Oberfläche verifiziert.**
-
 # Versionshistorie
+
+## 0.3.5b5 – Beta 5: optionale evcc-Ladestromsteuerung (2026-11-12)
+
+- **Neu:** Optionale Anbindung an die bestehenden evcc-Entitäten von Home Assistant mit separatem Einrichtungsdialog, eigener ausdrücklicher Steuerfreigabe und Zielstromsensor.
+- Automatische Anpassung des maximalen Ladestroms anhand des konservativen Viertelstundenbudgets. Stromsenkung unmittelbar, Erhöhung stufenweise nach stabiler Leistungsreserve.
+- **Optional:** Ladepause unterhalb der dreiphasigen Mindestladeleistung und kontrollierte Wiederaufnahme (erst auf 6 A begrenzen, danach nach `smart` schalten).
+- Sicherheitsmechanismen gegen veraltete/unvollständige Messwerte, ausbleibende Servicebestätigung, Änderungen durch externe Automationen oder manuelle Eingriffe sowie ungewollte Wiederaufnahme nach Reload.
+- Bestehende Abschalt- und Wiedereinschaltfunktionen bleiben erhalten. evcc-Funktion muss bewusst eingerichtet und nach jedem Neustart/Reload erneut aktiviert werden.
+- Deutsche und englische Beschriftungen und Hilfetexte für die neuen Optionen.
+- **Tests:** 63 Logiktests und 14 Home-Assistant-Integrationstests in GitHub Actions bestanden. Zusätzlich acht interaktive Szenarien in separater Docker-HA-Instanz mit virtueller Wallbox erfolgreich geprüft, inklusive Ladepause, Neustart der Integration und externer Eingriffe.
+- **Einschränkung:** Noch kein Test der tatsächlichen evcc-Netzwerkkommunikation oder einer echten Wallbox. Pilot/Prerelease, nicht für ungeprüften produktiven Betrieb.
+- Installationshinweise für Home Assistant 2026.11 über den integrierten Marketplace aktualisiert.
 
 ## 0.3.5b4 – Beta 4: Deutschsprachige Einstellungen und Hilfetexte (2026-11-10)
 
