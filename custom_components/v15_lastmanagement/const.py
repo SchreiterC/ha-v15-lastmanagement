@@ -42,3 +42,16 @@ DEFAULT_EVCC_VOLTAGE = 230
 DEFAULT_EVCC_MARGIN_W = 300
 DEFAULT_EVCC_STABLE_S = 90
 DEFAULT_EVCC_STEP_S = 30
+
+# Optional direct go-e Charger Gemini/HTTP API v2 backend (single charger only).
+# evcc and go-e are mutually exclusive within one V15 config entry.
+CONF_GOE_CONFIGURED = "goe_configured"
+CONF_GOE_HOST = "goe_local_ipv4"
+CONF_GOE_EXCLUSIVE = "goe_other_regulators_disabled"
+CONF_GOE_PHASES = "goe_installed_phases"
+CONF_GOE_MIN_A = "goe_min_current_a"
+CONF_GOE_MAX_A = "goe_max_current_a"
+CONF_GOE_MARGIN_W = "goe_margin_w"
+CONF_GOE_STABLE_S = "goe_stable_seconds"
+CONF_GOE_STEP_S = "goe_step_seconds"
+CONF_GOE_ALLOW_PAUSE = "goe_allow_pause"
