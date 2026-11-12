@@ -1,6 +1,6 @@
 # Virtuelles Testlabor für V15 und evcc
 
-**Status:** Entwicklungsplanung und lokaler Prototyp. Die veröffentlichte Beta 4 auf `main` bleibt unverändert.
+**Status:** Automatisierte HA-Integrationstests und interaktive Docker-Praxistests mit virtueller Wallbox erfolgreich. Keine Tests mit echter evcc-/Wallbox-Hardware. Die veröffentlichte Beta 4 auf `main` bleibt unverändert.
 
 ## Ziel
 V15 mit echten Regelfunktionen, aber ausschließlich virtuellen Home-Assistant-Entitäten und einer virtuellen Wallbox prüfen. Keine Verbindung zur produktiven Installation und keine Hardware-Schaltbefehle.
@@ -24,7 +24,7 @@ V15 mit echten Regelfunktionen, aber ausschließlich virtuellen Home-Assistant-E
 ## Teststufen
 - **Stufe A:** Rechenlogik und Controller mit Python-Fakes und beschleunigter Uhr. Lokal erste 63 Tests erfolgreich, darunter vier neue Szenariotests.
 - **Stufe B (bestanden):** 14 Integrationstests mit Home Assistant 2026.11 und virtuellen Geräten erfolgreich, einschließlich Service-Aufrufen und Entitätsregistrierung.
-- **Stufe C (optional):** Getrennte Home-Assistant-/evcc-Containerinstanz mit rein virtueller Hardware.
+- **Stufe C (bestanden):** Separate Docker-Home-Assistant-Instanz mit rein virtuellen Sensoren und virtueller evcc-Wallbox, interaktiv am 12.11.2026 geprüft. Kein echter evcc-Server im Test.
 - **Stufe D:** Freiwilliger Praxis-Betatest durch geeignete Tester, erst danach Veröffentlichung.
 
 ## Sicherheitsregressionen (10.11.2026)
@@ -44,4 +44,20 @@ Im lokalen Entwicklungspaket `v15_evcc_ha_testlabor_2026_11.zip` sind inzwischen
 - `lab_ha/compose.yaml` und `lab_ha/config/configuration.yaml`: optionale Home-Assistant-Containerinstanz mit virtuellen Sensoren und Template-Selects
 - `lab_ha/README_DE.md`: Inbetriebnahme nur auf einem separaten Testrechner
 
-**Verifiziert:** 63 bestehende Logiktests, statische YAML-/Python-Prüfungen und **14 von 14 Integrationstests in einer echten Home-Assistant-2026.11-Testlaufzeit auf GitHub Actions**, einschließlich eines virtuellen `select.select_option`-Stellbefehls. [Erfolgreicher Testlauf](https://github.com/SchreiterC/ha-v15-lastmanagement/actions/runs/42880718053). **Noch offen:** Docker-Containeroberfläche starten und visuell prüfen sowie freiwillige echte evcc-/Wallbox-Tests. Python 3.13 in der lokalen Umgebung reicht nicht aus: HA 2026.11 erfordert Python 3.14.2 oder neuer. Die vollständigen Beta-5- und Testdateien liegen nun **in diesem Entwicklungszweig**. Die HA-Testumgebung verwendet die offizielle Bibliothek `pytest-homeassistant==2026.11.0`. Das veröffentlichte `main` bleibt unberührt.
+**Verifiziert:** 63 bestehende Logiktests, statische YAML-/Python-Prüfungen und **14 von 14 Integrationstests in einer echten Home-Assistant-2026.11-Testlaufzeit auf GitHub Actions**, einschließlich eines virtuellen `select.select_option`-Stellbefehls. [Erfolgreicher Testlauf](https://github.com/SchreiterC/ha-v15-lastmanagement/actions/runs/42880718053). **Noch offen:** freiwillige Tests mit echtem evcc und echter Wallbox. Python 3.13 in der lokalen Umgebung reicht nicht aus: HA 2026.11 erfordert Python 3.14.2 oder neuer. Die vollständigen Beta-5- und Testdateien liegen nun **in diesem Entwicklungszweig**. Die HA-Testumgebung verwendet die offizielle Bibliothek `pytest-homeassistant==2026.11.0`. Das veröffentlichte `main` bleibt unberührt.
+
+
+## Interaktive Docker-Tests (12.11.2026)
+
+Der Tester bestätigte in seiner lokalen Home-Assistant-Docker-Instanz (Port 8124) folgende Szenarien:
+
+1. Nach Ergänzung eines minütlichen `test_heartbeat`-Attributs für die zwei virtuellen Leistungssensoren war die Messabdeckung stabil und die reale V15-Berechnung im Probelauf aktiv: 5,04 kW Netzleistung bei -6.000 W Grundlast, 16 A und drei Phasen, ungefähr 4,46 kW Restbudget und 14 A Zielstrom.
+2. Mit aktiver V15-evcc-Regelung wurde der virtuelle Maximalstrom auf 14 A begrenzt (9,66 kW virtuelle Ladeleistung, 3,66 kW Netzbezug).
+3. Bei höherem PV-Überschuss erfolgte die Erhöhung von 14 auf 15 und 16 A schrittweise.
+4. Bei +1.500 W Grundlast wurde die Ladung automatisch pausiert (Modus `off`).
+5. Nach wieder ausreichender Reserve wurde zuerst das Limit auf 6 A gestellt, erst danach der Modus auf `smart` gesetzt und der Maximalstrom wieder erhöht.
+6. Ein manueller Wechsel zu `now` wurde respektiert, und V15 deaktivierte seine Steuerung.
+7. Eine manuelle Änderung des maximalen Stroms auf 12 A wurde erkannt und respektiert, die V15-Steuerung wurde deaktiviert.
+8. Beim Neuladen der V15-Integration blieb die evcc-Steuerung deaktiviert und der zuletzt gesetzte Maximalstrom unverändert.
+
+Diese Ergebnisse sind durch Tester-Rückmeldungen und teilweise Screenshots belegt, nicht durch einen exportierten vollständigen Laufzeitlog. **Nicht durchgeführt:** echte evcc-Netzwerk-/Wallbox-Kommunikation und ein separat bestätigter vollständiger Docker-Containerneustart. Der Test der Wiederanlaufsperre bezog sich auf das **Neuladen der V15-Integration**.
