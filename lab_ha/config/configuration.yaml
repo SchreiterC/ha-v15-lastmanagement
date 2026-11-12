@@ -56,6 +56,9 @@ template:
         unique_id: v15_lab_charge_power
         unit_of_measurement: W
         device_class: power
+        # Refresh last_updated even when the simulated power stays constant.
+        attributes:
+          test_heartbeat: "{{ now().isoformat() }}"
         state: >-
           {% if is_state('input_boolean.v15_test_ev_angesteckt', 'on')
               and is_state('input_select.v15_test_evcc_modus', 'smart') %}
@@ -68,6 +71,8 @@ template:
         unique_id: v15_lab_grid_power
         unit_of_measurement: W
         device_class: power
+        attributes:
+          test_heartbeat: "{{ now().isoformat() }}"
         state: >-
           {{ (states('input_number.v15_test_grundlast_w') | float(0)
               + states('sensor.v15_test_evcc_ladeleistung') | float(0)) | round(0) }}
