@@ -8,9 +8,7 @@ from datetime import timedelta
 import json
 import logging
 
-from aiohttp import ClientTimeout
 from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
@@ -43,6 +41,10 @@ class GoeLocalAPI:
         self.base = f"http://{self.host}"
 
     async def _get(self, path, params):
+        # Delay the Home Assistant HTTP dependency until a go-e backend is used.
+        # The pure V15 arithmetic unit tests load the coordinator with HA stubs.
+        from aiohttp import ClientTimeout
+        from homeassistant.helpers.aiohttp_client import async_get_clientsession
         session = async_get_clientsession(self.hass)
         async with session.get(
             f"{self.base}{path}", params=params,
