@@ -1,6 +1,6 @@
 # Virtuelles Testlabor fuer V15 und evcc
 
-**Status:** Lokaler Entwicklungsstand v0.3.5b5. Nicht fuer die produktive Home-Assistant-Installation freigegeben.
+**Status:** Beta 5 (v0.3.5b5): Modell- und Home-Assistant-Docker-Tests mit virtueller Wallbox erfolgreich; reale evcc-/Wallbox-Hardware noch nicht getestet. Kein ungepruefter produktiver Einsatz.
 
 ## Prinzip
 
@@ -42,11 +42,11 @@ Die Dateien `*_trace.csv` enthalten Messwerte und Diagnose je simuliertem Zeitsc
 
 Dies ist ein **modellbasierter Test**. Es gibt keine reale Wallbox, keine physikalisch exakte PV-Prognose, keine authentische evcc-API-Antwort und keinen vollstaendigen Home-Assistant-Prozess. Insbesondere werden Kommunikationslatenzen, Automationskonflikte, echte Sensorausfaelle und hardwareabhaengige Phasenumschaltungen noch nicht durch diese Tests nachgewiesen.
 
-## Naechste Stufen
+## Stand und naechste Stufe
 
-1. Python-Tests und Szenariensimulator als eigenen CI-Job auf dem Entwicklungszweig ausfuehren.
-2. Getrennte Home-Assistant-Testinstanz mit `pytest-homeassistant-custom-component` und Fake-Entitaeten nutzen; Registrierung, Konfigurationsdialog und echte Service-Aufrufe gegen die HA-Testumgebung pruefen.
-3. Optional evcc mit virtuellen Geraeten auf einem isolierten Container/VM-Netz starten.
-4. Erst nach diesen Pruefungen und einem freiwilligen Hardware-Betatest eine neue HACS-Version bereitstellen.
+1. Python-Szenariotests erfolgreich (63 Logiktests).
+2. Echte Home-Assistant-Testlaufzeit mit virtuellen Entitaeten in GitHub Actions erfolgreich (14 Integrationstests).
+3. Separate Docker-Home-Assistant-Testinstanz mit virtueller Wallbox: acht interaktive Szenarien erfolgreich, inklusive Ladepause, Wiederfreigabe, manueller Eingriffe und Integrations-Reload.
+4. **Noch offen:** kontrollierter Betatest der echten evcc-/Wallbox-Kommunikation.
 
-**Wichtig:** GitHub-Zweig `dev/evcc-simulator` ist absichtlich vom veroeffentlichten `main` getrennt. Keine produktiven Daten, Tokens, IP-Adressen oder Wallboxzugriffe im Testlabor hinterlegen.
+**Wichtig:** Diese Tests zeigen das Verhalten virtueller Entitaeten und keine reale Wallbox-Kommunikation. Die Beta-5-Funktion wird nur nach ausdruecklicher Freigabe aktiviert. Sie darf nicht als geeichte Viertelstunden-Leistungsbegrenzung verstanden werden.
