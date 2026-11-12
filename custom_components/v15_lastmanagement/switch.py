@@ -8,6 +8,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     entities = [V15Control(m), V15Simulation(m), V15Demo(m)]
     if m.evcc.configured:
         entities.append(V15EvccControl(m))
+    if m.goe.configured:
+        entities.append(V15GoeControl(m))
     async_add_entities(entities)
 
 class V15BaseSwitch(SwitchEntity):
@@ -51,7 +53,7 @@ class V15Simulation(V15BaseSwitch):
         return self.monitor.simulation
     async def async_turn_on(self, **kwargs):
         self.monitor.enabled = False
-        self.monitor.evcc.deactivate("Probelauf aktiviert; evcc nicht mehr gesteuert")
+        self.monitor.charger.deactivate("Probelauf aktiviert; Ladegerät nicht mehr gesteuert")
         self.monitor.simulation = True
         self.monitor.update()
     async def async_turn_off(self, **kwargs):
@@ -70,7 +72,7 @@ class V15Demo(V15BaseSwitch):
     async def async_turn_on(self, **kwargs):
         from homeassistant.util import dt as dt_util
         self.monitor.enabled = False
-        self.monitor.evcc.deactivate("Künstliche Demo aktiviert; evcc nicht mehr gesteuert")
+        self.monitor.charger.deactivate("Künstliche Demo aktiviert; Ladegerät nicht mehr gesteuert")
         self.monitor.simulation = True
         self.monitor.demo_data = True
         self.monitor.demo_started = dt_util.now()
@@ -113,6 +115,8 @@ class V15EvccControl(V15BaseSwitch):
         }
 
     async def async_turn_on(self, **kwargs):
+        if self.monitor.charger is not self.monitor.evcc:
+            raise ValueError("Direkte go-e-Steuerung ist ausgewählt")
         self.monitor.evcc.activate()
         self.monitor.simulation = False
         self.monitor.update()
@@ -120,5 +124,39 @@ class V15EvccControl(V15BaseSwitch):
     async def async_turn_off(self, **kwargs):
         self.monitor.evcc.deactivate(
             "V15 evcc-Steuerung deaktiviert; Ladezustand und Stromlimit in evcc prüfen"
+        )
+        self.monitor.update()
+
+
+class V15GoeControl(V15BaseSwitch):
+    """Exclusive, explicit opt-in direct go-e control via local HTTP API v2."""
+    key = "goe_live_control"
+    _attr_name = "V15 go-e-Ladestromregelung"
+    _attr_icon = "mdi:ev-station"
+
+    @property
+    def is_on(self):
+        return self.monitor.goe.enabled
+
+    @property
+    def extra_state_attributes(self):
+        g = self.monitor.goe
+        return {
+            "status": g.status,
+            "original_max_current_a": g.original_current,
+            "paused_by_v15": g.owned_pause,
+            "last_action": g.last_action,
+        }
+
+    async def async_turn_on(self, **kwargs):
+        if self.monitor.charger is not self.monitor.goe or self.monitor.evcc.enabled:
+            raise ValueError("go-e and evcc must not control the same charger")
+        self.monitor.goe.activate()
+        self.monitor.simulation = False
+        self.monitor.update()
+
+    async def async_turn_off(self, **kwargs):
+        self.monitor.goe.deactivate(
+            "go-e-Steuerung deaktiviert; Ladestatus und Stromlimit am Gerät prüfen"
         )
         self.monitor.update()
