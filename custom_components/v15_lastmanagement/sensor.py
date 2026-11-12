@@ -19,6 +19,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     entities = [V15Sensor(m, key, *metadata) for key, metadata in FIELDS.items()] + [V15Explanation(m)]
     if m.evcc.configured:
         entities.append(V15EvccTargetSensor(m))
+    if m.goe.configured:
+        entities.append(V15GoeTargetSensor(m))
     async_add_entities(entities)
 
 
@@ -90,7 +92,15 @@ class V15Explanation(SensorEntity):
                 "evcc_paused_by_v15": self.monitor.evcc.owned_pause,
                 "evcc_target_current_a": self.monitor.evcc.target,
                 "evcc_available_charge_w": self.monitor.evcc.available_w,
-                "evcc_base_load_w": self.monitor.evcc.base_w}
+                "evcc_base_load_w": self.monitor.evcc.base_w,
+                "goe_configured": self.monitor.goe.configured,
+                "goe_live_control": self.monitor.goe.enabled,
+                "goe_status": self.monitor.goe.status,
+                "goe_paused_by_v15": self.monitor.goe.owned_pause,
+                "goe_target_current_a": self.monitor.goe.target,
+                "goe_available_charge_w": self.monitor.goe.available_w,
+                "charging_backend": "goe" if self.monitor.goe.configured else
+                                    "evcc" if self.monitor.evcc.configured else "none"}
 
     async def async_added_to_hass(self):
         self.async_on_remove(self.monitor.subscribe(self.async_write_ha_state))
@@ -120,6 +130,36 @@ class V15EvccTargetSensor(SensorEntity):
             "available_charge_w": self.monitor.evcc.available_w,
             "base_load_w": self.monitor.evcc.base_w,
             "last_action": self.monitor.evcc.last_action,
+        }
+
+    async def async_added_to_hass(self):
+        self.async_on_remove(self.monitor.subscribe(self.async_write_ha_state))
+
+
+class V15GoeTargetSensor(SensorEntity):
+    """Recommended direct go-e charging current in A; not a physical command."""
+    _attr_name = "V15 go-e Zielstrom"
+    _attr_has_entity_name = False
+    _attr_icon = "mdi:current-ac"
+    _attr_native_unit_of_measurement = "A"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, monitor):
+        self.monitor = monitor
+        self._attr_unique_id = f"{monitor.entry.entry_id}_goe_target_current"
+        self._attr_device_info = v15_device_info(monitor)
+
+    @property
+    def native_value(self):
+        return self.monitor.goe.target
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "status": self.monitor.goe.status,
+            "available_charge_w": self.monitor.goe.available_w,
+            "base_load_w": self.monitor.goe.base_w,
+            "last_action": self.monitor.goe.last_action,
         }
 
     async def async_added_to_hass(self):
