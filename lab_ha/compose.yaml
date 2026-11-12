@@ -1,0 +1,16 @@
+services:
+  homeassistant-v15-lab:
+    image: ghcr.io/home-assistant/home-assistant:2026.11.0
+    container_name: v15-virtual-ha-lab
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Vienna
+    volumes:
+      - ./config:/config
+      - ../custom_components/v15_lastmanagement:/config/custom_components/v15_lastmanagement:ro
+    ports:
+      # Reachable from the test PC only, never via other LAN devices.
+      - '127.0.0.1:8124:8123'
+    # No host networking, no access to Docker socket or privileged hardware.
+    security_opt:
+      - no-new-privileges:true

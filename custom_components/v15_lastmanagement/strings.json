@@ -15,7 +15,8 @@
           "auto_restore": "Automatically switch previously shed loads back on",
           "restore_stable_seconds": "Required period of sufficient headroom (seconds)",
           "restore_min_off_seconds": "Minimum off duration per load (seconds)",
-          "restore_margin_watts": "Additional power margin for restoration (W)"
+          "restore_margin_watts": "Additional power margin for restoration (W)",
+          "evcc_configured": "Configure optional evcc charging-point control"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -27,17 +28,52 @@
           "auto_restore": "Only loads that V15 itself switched off in this run can be restored after sufficient power headroom. Live control must also be enabled separately.",
           "restore_stable_seconds": "Available headroom must remain sufficient for this long before restoration is permitted.",
           "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
-          "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on."
+          "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
+          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand."
         }
       },
       "restore": {
         "title": "Estimated maximum power per load (W)",
         "description": "**Why are these values needed?** Before switching a load back on, V15 checks whether its expected power **plus an additional safety margin** fits into the available power budget.\n\n**Enter a conservative maximum power estimate in watts for each switch**, preferably including any startup surge. Do not enter average consumption or **kW**. Example: Enter `600` for a load that can draw up to 600 W. Underestimating the power can cause a threshold exceedance.\n\n**Selected switches (same order as the input fields):**\n{switches}\n\nOnly loads previously switched off by V15 are restored automatically. Restarting or changing settings does not restore earlier loads."
+      },
+      "evcc": {
+        "title": "Configure evcc charging point",
+        "description": "**Optional: uses evcc entities already available in Home Assistant.** V15 may cap the maximum current. Only if pausing is explicitly allowed may it switch the loadpoint mode from `smart` to `off` and back to `smart`. It never selects `now`.\n\n**The V15 evcc controller is disabled on every Home Assistant restart.** Charging limits or pauses may remain in evcc after restart and may need manual intervention. evcc still owns solar surplus, tariff and charging-plan logic.",
+        "data": {
+          "evcc_current_entity": "evcc maximum current (Select or Number)",
+          "evcc_mode_entity": "evcc charging mode (Select)",
+          "evcc_charge_power_entity": "evcc charging power (Sensor)",
+          "evcc_phases_entity": "Active charging phases (optional Sensor)",
+          "evcc_fixed_phases": "Phase count if no sensor is selected (1 or 3)",
+          "evcc_min_current_a": "Minimum charging current (A)",
+          "evcc_max_current_a": "Maximum charging current (A)",
+          "evcc_voltage": "Nominal voltage per phase (V)",
+          "evcc_margin_w": "Additional safety margin (W)",
+          "evcc_stable_seconds": "Required stable headroom before increase (s)",
+          "evcc_step_seconds": "Minimum spacing between changes (s)",
+          "evcc_allow_pause": "Allow automatic pause when budget is insufficient"
+        },
+        "data_description": {
+          "evcc_current_entity": "Choose e.g. select.evcc_go_e_wallbox_max_current. Only supported select choices or a number entity will be used.",
+          "evcc_mode_entity": "Choose e.g. select.evcc_go_e_wallbox_mode. The mode must be smart before control can be activated. now/off are not taken over.",
+          "evcc_charge_power_entity": "Measured charging power in W or kW, e.g. sensor.evcc_go_e_wallbox_charge_power.",
+          "evcc_phases_entity": "Sensor returning 1 or 3. Unknown phase counts block control. The last known phase count can be used conservatively during a V15-owned pause.",
+          "evcc_fixed_phases": "Used if no phase sensor is chosen. Never enter 1 for a charger capable of charging on 3 phases.",
+          "evcc_min_current_a": "Usually 6 A per IEC 61851. Below minimum, V15 can only pause if this is explicitly allowed.",
+          "evcc_max_current_a": "Amperes. V15 never raises the cap above the value present when control is enabled.",
+          "evcc_voltage": "Usually 230 V. Calculations are estimates, not billing-grade measurements.",
+          "evcc_margin_w": "Extra reserve for evcc control, in addition to the V15 safety reserve.",
+          "evcc_stable_seconds": "Increases and resuming a V15-owned pause require stable power headroom.",
+          "evcc_step_seconds": "At least 30 seconds. Wait for entity state confirmation after each command.",
+          "evcc_allow_pause": "V15 may change smart to off if even minimum charging power exceeds budget. Only owned pauses may be resumed. The mode can remain off after restart/disable."
+        }
       }
     },
     "error": {
       "reserve_too_high": "The safety reserve must be lower than the threshold.",
-      "restore_requires_loads": "Select at least one load switch to enable automatic restoration."
+      "restore_requires_loads": "Select at least one load switch to enable automatic restoration.",
+      "evcc_current_limits": "Minimum charging current must not exceed the maximum.",
+      "evcc_separate_entities": "Charging mode and maximum current must be different entities."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement is already configured."
@@ -58,7 +94,8 @@
           "auto_restore": "Automatically switch previously shed loads back on",
           "restore_stable_seconds": "Required period of sufficient headroom (seconds)",
           "restore_min_off_seconds": "Minimum off duration per load (seconds)",
-          "restore_margin_watts": "Additional power margin for restoration (W)"
+          "restore_margin_watts": "Additional power margin for restoration (W)",
+          "evcc_configured": "Configure optional evcc charging-point control"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -70,17 +107,52 @@
           "auto_restore": "Only loads that V15 itself switched off in this run can be restored after sufficient power headroom. Live control must also be enabled separately.",
           "restore_stable_seconds": "Available headroom must remain sufficient for this long before restoration is permitted.",
           "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
-          "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on."
+          "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
+          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand."
         }
       },
       "restore": {
         "title": "Estimated maximum power per load (W)",
         "description": "**Why are these values needed?** Before switching a load back on, V15 checks whether its expected power **plus an additional safety margin** fits into the available power budget.\n\n**Enter a conservative maximum power estimate in watts for each switch**, preferably including any startup surge. Do not enter average consumption or **kW**. Example: Enter `600` for a load that can draw up to 600 W. Underestimating the power can cause a threshold exceedance.\n\n**Selected switches (same order as the input fields):**\n{switches}\n\nOnly loads previously switched off by V15 are restored automatically. Restarting or changing settings does not restore earlier loads."
+      },
+      "evcc": {
+        "title": "Configure evcc charging point",
+        "description": "**Optional: uses evcc entities already available in Home Assistant.** V15 may cap the maximum current. Only if pausing is explicitly allowed may it switch the loadpoint mode from `smart` to `off` and back to `smart`. It never selects `now`.\n\n**The V15 evcc controller is disabled on every Home Assistant restart.** Charging limits or pauses may remain in evcc after restart and may need manual intervention. evcc still owns solar surplus, tariff and charging-plan logic.",
+        "data": {
+          "evcc_current_entity": "evcc maximum current (Select or Number)",
+          "evcc_mode_entity": "evcc charging mode (Select)",
+          "evcc_charge_power_entity": "evcc charging power (Sensor)",
+          "evcc_phases_entity": "Active charging phases (optional Sensor)",
+          "evcc_fixed_phases": "Phase count if no sensor is selected (1 or 3)",
+          "evcc_min_current_a": "Minimum charging current (A)",
+          "evcc_max_current_a": "Maximum charging current (A)",
+          "evcc_voltage": "Nominal voltage per phase (V)",
+          "evcc_margin_w": "Additional safety margin (W)",
+          "evcc_stable_seconds": "Required stable headroom before increase (s)",
+          "evcc_step_seconds": "Minimum spacing between changes (s)",
+          "evcc_allow_pause": "Allow automatic pause when budget is insufficient"
+        },
+        "data_description": {
+          "evcc_current_entity": "Choose e.g. select.evcc_go_e_wallbox_max_current. Only supported select choices or a number entity will be used.",
+          "evcc_mode_entity": "Choose e.g. select.evcc_go_e_wallbox_mode. The mode must be smart before control can be activated. now/off are not taken over.",
+          "evcc_charge_power_entity": "Measured charging power in W or kW, e.g. sensor.evcc_go_e_wallbox_charge_power.",
+          "evcc_phases_entity": "Sensor returning 1 or 3. Unknown phase counts block control. The last known phase count can be used conservatively during a V15-owned pause.",
+          "evcc_fixed_phases": "Used if no phase sensor is chosen. Never enter 1 for a charger capable of charging on 3 phases.",
+          "evcc_min_current_a": "Usually 6 A per IEC 61851. Below minimum, V15 can only pause if this is explicitly allowed.",
+          "evcc_max_current_a": "Amperes. V15 never raises the cap above the value present when control is enabled.",
+          "evcc_voltage": "Usually 230 V. Calculations are estimates, not billing-grade measurements.",
+          "evcc_margin_w": "Extra reserve for evcc control, in addition to the V15 safety reserve.",
+          "evcc_stable_seconds": "Increases and resuming a V15-owned pause require stable power headroom.",
+          "evcc_step_seconds": "At least 30 seconds. Wait for entity state confirmation after each command.",
+          "evcc_allow_pause": "V15 may change smart to off if even minimum charging power exceeds budget. Only owned pauses may be resumed. The mode can remain off after restart/disable."
+        }
       }
     },
     "error": {
       "reserve_too_high": "The safety reserve must be lower than the threshold.",
-      "restore_requires_loads": "Select at least one load switch to enable automatic restoration."
+      "restore_requires_loads": "Select at least one load switch to enable automatic restoration.",
+      "evcc_current_limits": "Minimum charging current must not exceed the maximum.",
+      "evcc_separate_entities": "Charging mode and maximum current must be different entities."
     }
   }
 }

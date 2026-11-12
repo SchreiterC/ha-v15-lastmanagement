@@ -1,0 +1,3 @@
+# First-party Home Assistant test fixtures, same version as Home Assistant.
+homeassistant==2026.11.0
+pytest-homeassistant==2026.11.0

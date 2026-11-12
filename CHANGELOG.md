@@ -1,5 +1,17 @@
 # Versionshistorie
 
+## 0.3.5b5 – Beta 5: optionale evcc-Ladestromsteuerung (2026-11-12)
+
+- **Neu:** Optionale Anbindung an die bestehenden evcc-Entitäten von Home Assistant mit separatem Einrichtungsdialog, eigener ausdrücklicher Steuerfreigabe und Zielstromsensor.
+- Automatische Anpassung des maximalen Ladestroms anhand des konservativen Viertelstundenbudgets. Stromsenkung unmittelbar, Erhöhung stufenweise nach stabiler Leistungsreserve.
+- **Optional:** Ladepause unterhalb der dreiphasigen Mindestladeleistung und kontrollierte Wiederaufnahme (erst auf 6 A begrenzen, danach nach `smart` schalten).
+- Sicherheitsmechanismen gegen veraltete/unvollständige Messwerte, ausbleibende Servicebestätigung, Änderungen durch externe Automationen oder manuelle Eingriffe sowie ungewollte Wiederaufnahme nach Reload.
+- Bestehende Abschalt- und Wiedereinschaltfunktionen bleiben erhalten. evcc-Funktion muss bewusst eingerichtet und nach jedem Neustart/Reload erneut aktiviert werden.
+- Deutsche und englische Beschriftungen und Hilfetexte für die neuen Optionen.
+- **Tests:** 63 Logiktests und 14 Home-Assistant-Integrationstests in GitHub Actions bestanden. Zusätzlich acht interaktive Szenarien in separater Docker-HA-Instanz mit virtueller Wallbox erfolgreich geprüft, inklusive Ladepause, Neustart der Integration und externer Eingriffe.
+- **Einschränkung:** Noch kein Test der tatsächlichen evcc-Netzwerkkommunikation oder einer echten Wallbox. Pilot/Prerelease, nicht für ungeprüften produktiven Betrieb.
+- Installationshinweise für Home Assistant 2026.11 über den integrierten Marketplace aktualisiert.
+
 ## 0.3.5b4 – Beta 4: Deutschsprachige Einstellungen und Hilfetexte (2026-11-10)
 
 - Einheitliche deutsche und englische Bezeichnungen für die Abschalt- und Wiedereinschaltoptionen.

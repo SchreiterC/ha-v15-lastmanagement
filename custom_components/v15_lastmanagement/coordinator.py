@@ -23,6 +23,7 @@ from .const import (
 )
 from .math_v15 import quarter_start, calculate
 from .restore_logic import power_headroom_ok, periods_satisfied
+from .evcc_control import V15EvccController
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,6 +68,15 @@ class V15Monitor:
         self.restore_candidate = None
         self.restore_since = None
         self.restore_status = "Wiedereinschaltung nicht geprüft"
+        self.evcc = V15EvccController(self)
+
+    def calculate_current(self, now, watts):
+        """Fresh quarter-hour budget for a late asynchronous evcc action."""
+        if self.slot != quarter_start(now):
+            return None
+        elapsed = max(0.0, min(900.0, (now - self.slot).total_seconds()))
+        return calculate(self.energy_wh, elapsed, max(0.0, watts),
+                         float(self.config[CONF_LIMIT]), float(self.config[CONF_RESERVE]))
 
     @property
     def auto_restore_enabled(self):
@@ -309,6 +319,17 @@ class V15Monitor:
             "restore_ready": restore_ready,
             "restore_status": restore_status,
         }
+        if (self.enabled and trusted and risky and candidate) or (
+            self.enabled and self.last_shed_time and
+            (now - self.last_shed_time).total_seconds() < 30
+        ):
+            # A configured switch is shed first; do not adjust evcc and a
+            # switch simultaneously based on the same pre-action grid reading.
+            self.evcc._preview(trusted, cal, watts)
+            if self.evcc.enabled:
+                self.evcc.status = "Warte auf vorrangige Lastabschaltung"
+        else:
+            self.evcc.evaluate(now, trusted, cal, watts)
         self.notify()
 
         cooldown_ok = self.last_shed_time is None or (now - self.last_shed_time).total_seconds() >= 30
@@ -424,6 +445,10 @@ class V15Monitor:
         self.listeners.append(async_track_state_change_event(
             self.hass, [self.grid_entity], self.update
         ))
+        if self.evcc.observed_entities:
+            self.listeners.append(async_track_state_change_event(
+                self.hass, self.evcc.observed_entities, self.update
+            ))
         if self.load_entities:
             self.listeners.append(async_track_state_change_event(
                 self.hass, self.load_entities, self._on_load_change
@@ -434,6 +459,7 @@ class V15Monitor:
         self.update()
 
     async def async_stop(self):
+        self.evcc.deactivate("HA-Neustart oder Konfigurationswechsel; keine automatische evcc-Freigabe")
         self.enabled = False
         self.demo_data = False
         for unsubscribe in self.listeners:

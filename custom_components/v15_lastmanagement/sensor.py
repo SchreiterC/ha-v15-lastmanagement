@@ -16,7 +16,10 @@ FIELDS = {
 
 async def async_setup_entry(hass, entry, async_add_entities):
     m = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([V15Sensor(m, key, *metadata) for key, metadata in FIELDS.items()] + [V15Explanation(m)])
+    entities = [V15Sensor(m, key, *metadata) for key, metadata in FIELDS.items()] + [V15Explanation(m)]
+    if m.evcc.configured:
+        entities.append(V15EvccTargetSensor(m))
+    async_add_entities(entities)
 
 
 class V15Sensor(SensorEntity):
@@ -79,7 +82,45 @@ class V15Explanation(SensorEntity):
                 "restore_candidate": self.monitor.data.get("restore_candidate"),
                 "restore_ready": self.monitor.data.get("restore_ready", False),
                 "restore_status": self.monitor.data.get("restore_status"),
-                "pending_restore_confirmation": list(self.monitor.pending_on)}
+                "pending_restore_confirmation": list(self.monitor.pending_on),
+                "evcc_configured": self.monitor.evcc.configured,
+                "evcc_live_control": self.monitor.evcc.enabled,
+                "evcc_status": self.monitor.evcc.status,
+                "evcc_last_action": self.monitor.evcc.last_action,
+                "evcc_paused_by_v15": self.monitor.evcc.owned_pause,
+                "evcc_target_current_a": self.monitor.evcc.target,
+                "evcc_available_charge_w": self.monitor.evcc.available_w,
+                "evcc_base_load_w": self.monitor.evcc.base_w}
+
+    async def async_added_to_hass(self):
+        self.async_on_remove(self.monitor.subscribe(self.async_write_ha_state))
+
+
+class V15EvccTargetSensor(SensorEntity):
+    """Recommendation in amperes, without implying physical current has changed."""
+    _attr_name = "V15 evcc Zielstrom"
+    _attr_has_entity_name = False
+    _attr_icon = "mdi:current-ac"
+    _attr_native_unit_of_measurement = "A"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, monitor):
+        self.monitor = monitor
+        self._attr_unique_id = f"{monitor.entry.entry_id}_evcc_target_current"
+        self._attr_device_info = v15_device_info(monitor)
+
+    @property
+    def native_value(self):
+        return self.monitor.evcc.target
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "status": self.monitor.evcc.status,
+            "available_charge_w": self.monitor.evcc.available_w,
+            "base_load_w": self.monitor.evcc.base_w,
+            "last_action": self.monitor.evcc.last_action,
+        }
 
     async def async_added_to_hass(self):
         self.async_on_remove(self.monitor.subscribe(self.async_write_ha_state))

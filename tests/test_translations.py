@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]/"custom_components"/"v15_lastmanageme
 FIELDS = {
     "grid_sensor", "limit_kw", "reserve_kw", "reverse_sign", "stale_seconds",
     "load_switches", "auto_restore", "restore_stable_seconds",
-    "restore_min_off_seconds", "restore_margin_watts",
+    "restore_min_off_seconds", "restore_margin_watts", "evcc_configured",
 }
 
 
@@ -42,6 +42,15 @@ class TestFlowTranslations(unittest.TestCase):
                     step = content[section]["step"]["restore"]
                     self.assertIn("{switches}", step["description"])
                     self.assertIn("W", step["title"])
+                    self.assertGreater(len(step["description"]), 150)
+
+    def test_evcc_page_has_bilingual_labels_and_descriptions(self):
+        for language, content in (("de", self.de), ("en", self.en)):
+            for section in ("config", "options"):
+                with self.subTest(language=language, section=section):
+                    step = content[section]["step"]["evcc"]
+                    self.assertEqual(set(step["data"]), set(step["data_description"]))
+                    self.assertGreaterEqual(len(step["data"]), 12)
                     self.assertGreater(len(step["description"]), 150)
 
     def test_locales_have_matching_structure(self):
