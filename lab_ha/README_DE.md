@@ -33,3 +33,11 @@ Die vorhandenen virtuellen Helfer unter `input_number`/`input_select` ersetzen H
 ## Hinweis zu negativen Netzleistungen
 
 Die berechnete virtuelle Ladeleistung berücksichtigt Modus `smart`, 1/3 Phasen und eingestellte Ampere. Die virtuelle Netzleistung addiert diese zur frei wählbaren Haushaltsgrundlast. Negative Grundlast bedeutet virtuellen PV-Überschuss. Die tatsächliche Messdatengüte der Tests entspricht **nicht** einem echten Smart Meter.
+
+## Konstante Messwerte / „Unbekannt“ nach Abschalten der V15-Demo
+
+V15 verwirft Leistungssensoren standardmäßig nach 120 Sekunden ohne Aktualisierung des Home-Assistant-Zeitstempels `last_updated`. Reine Template-Sensoren mit konstantem Zahlenwert erhalten ohne Änderung auch keinen neuen `last_updated`-Zeitstempel.
+
+Die zwei virtuellen Leistungssensoren haben deshalb in `lab_ha/config/configuration.yaml` jeweils ein Attribut `test_heartbeat: "{{ now().isoformat() }}"`. Home Assistant aktualisiert dieses Attribut zu Beginn jeder Minute, auch wenn die Leistung gleich bleibt. Dadurch bleibt `last_updated` frisch. Das ist **ausschließlich eine Simulationshilfe**, keine Änderung an der V15-Produktivregelung.
+
+Bei einer bereits laufenden Testinstallation: die aktuelle `configuration.yaml` aus diesem Zweig nach `lab_ha/config/configuration.yaml` kopieren und im Ordner `lab_ha` `docker compose restart` ausführen. Danach V15-Demo auf **Aus**, Probelauf auf **Ein** und evcc-Livesteuerung auf **Aus** belassen. Die virtuellen Messwerte und den Sensor-Attributwert `test_heartbeat` prüfen. Nach ausreichender Messabdeckung der neuen Viertelstunde wird das V15-Restbudget verfügbar.
