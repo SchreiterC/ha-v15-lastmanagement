@@ -1,6 +1,6 @@
 # V15 evcc – virtueller Home-Assistant-Teststand
 
-**Entwicklung, nicht für die produktive Anlage installieren.**
+**Beta-5-Pilot: In virtueller Home-Assistant-Testumgebung geprüft. Reale evcc-/Wallbox-Hardware noch nicht getestet.**
 
 ## Verifiziert in der lokalen Entwicklungsumgebung
 
@@ -60,6 +60,6 @@ Testfälle: Entitäten und Diagnose, Sperre nach HA-Neustart, Probelauf ohne Akt
 
 Siehe `lab_ha/README_DE.md`.
 
-## Branch-Strategie
+## Veröffentlichungsstand
 
-Die veröffentlichte Beta 4 bleibt auf `main`. Der Entwicklungszweig `dev/evcc-simulator` dokumentiert das Vorhaben. Das Paket hier enthält die neue Beta-5-Codebasis und den vollständigen Testlabor-Aufbau. **Die vollständige Beta-5-Codebasis und die QA-Dateien liegen auf dem Entwicklungszweig. 14 automatisierte HA-Integrationstests und die interaktiven virtuellen Docker-Praxistests sind bestanden. Ein Test mit echter evcc-/Wallbox-Hardware steht aus.**
+Die Entwicklungs- und Testdateien wurden für **Beta 5 (`v0.3.5b5`)** vorbereitet. Nach der Übernahme in `main` stehen Integration und Testdokumentation auch im Veröffentlichungszweig bereit. **14 automatisierte HA-Integrationstests und die interaktiven virtuellen Docker-Praxistests sind bestanden. Ein Test mit echter evcc-/Wallbox-Hardware steht aus.**
