@@ -17,12 +17,27 @@
 - GitHub-Actions-Lauf: https://github.com/SchreiterC/ha-v15-lastmanagement/actions/runs/42880718053
 - Standard-Prüfungen `python-checks` (63 Tests), `hassfest` und `validate-hacs` ebenfalls erfolgreich.
 
-## Noch nicht ausgeführt
+## Interaktiver Docker-Praxistest: bestanden (12.11.2026)
 
-- Docker-Compose-Start und Sichtprüfung der Konfigurationsoberfläche.
-- Reale evcc-Netzwerk- und Wallbox-Kommunikation (absichtlich ausgeschlossen).
+Ein Tester hat die Entwicklungsfassung in einer separaten lokalen Docker-Home-Assistant-Instanz (Port 8124) ausschließlich mit virtuellen Sensoren und einer virtuellen evcc-Wallbox getestet. Die Ergebnisse wurden während des Tests durch Screenshots und Rückmeldungen des Testers bestätigt; es liegt **kein vollständiger exportierter Testlog** vor.
 
-**Grund:** Die Ausführungsumgebung enthält nur Python 3.13.5 und keinen Docker-Daemon. Home Assistant 2026.11.0 benötigt Python >= 3.14.2. Der Paketindex ist in dieser Umgebung nicht erreichbar. Die GitHub-Actions-Vorlage verwendet Python 3.14 und die offizielle pytest-homeassistant-Version 2026.11.0.
+- **Messdaten statt Demo:** Nach Korrektur der Testlabor-Templates um ein minütliches `test_heartbeat`-Attribut wurden die künstlichen Netz- und Ladeleistungswerte als aktuelle Messungen erkannt. Bei -6.000 W Grundlast, 16 A und drei Phasen: 5.040 W Netzbezug, ungefähr 4,46 kW Restbudget und 14 A berechneter Zielstrom, Messabdeckung > 99 %.
+- **Aktive Begrenzung:** Der virtuelle Maximalstrom wurde von 16 auf 14 A reduziert. Ladeleistung 9.660 W und Netzbezug 3.660 W.
+- **Schrittweise Freigabe:** Nach Erhöhung des simulierten PV-Überschusses auf -9.000 W wurde der Maximalstrom selbstständig von 14 über 15 auf 16 A erhöht.
+- **Ladepause:** Bei +1.500 W Grundlast wurde die virtuelle Ladung automatisch pausiert (Modus `off`, Ladeleistung 0 W).
+- **Wiederaufnahme:** Nach Rückkehr des PV-Überschusses wurde zunächst der Maximalstrom auf 6 A gesenkt, dann von `off` auf `smart` gewechselt und anschließend stufenweise erhöht.
+- **Manueller Moduswechsel:** Der Wechsel des virtuellen evcc-Modus auf `now` wurde respektiert und die V15-evcc-Regelung deaktiviert.
+- **Konkurrierende Stromvorgabe:** Eine manuelle Änderung des virtuellen Maximalstroms auf 12 A wurde respektiert und die V15-evcc-Regelung deaktiviert.
+- **Integration-Reload:** Nach erneutem Aktivieren der evcc-Regelung und anschließendem Neuladen der V15-Integration blieb die Regelung aus. Der virtuelle Maximalstrom wurde nicht erneut durch V15 geändert.
+
+**Grenze der Prüfung:** Die Tests erfolgten mit virtuellen Home-Assistant-Entitäten, nicht mit echtem evcc-Server, Wallbox oder Fahrzeug. Ein vollständiger Docker-Containerneustart wurde in dieser interaktiven Testserie nicht gesondert bestätigt; getestet wurde das Neuladen der Integration.
+
+## Noch offen
+
+- Praxistest der evcc-Anbindung mit echter Wallbox/echtem evcc in einer kontrollierten Testumgebung.
+- Optional: kompletter Docker-Containerneustart und Prüfung des Wiederanlaufverhaltens. Die separate Reload-Sperre ist bereits bestätigt.
+
+**Hinweis zur Testumgebung:** Die frühere lokale Entwicklungsumgebung hatte keinen Docker-Daemon und nur Python 3.13.5. Der Docker-Praxistest erfolgte später separat auf dem Rechner des Testers. Die automatisierten HA-Laufzeittests auf GitHub Actions liefen mit Python 3.14.
 
 ## Tests
 
@@ -47,4 +62,4 @@ Siehe `lab_ha/README_DE.md`.
 
 ## Branch-Strategie
 
-Die veröffentlichte Beta 4 bleibt auf `main`. Der Entwicklungszweig `dev/evcc-simulator` dokumentiert das Vorhaben. Das Paket hier enthält die neue Beta-5-Codebasis und den vollständigen Testlabor-Aufbau. **Die vollständige Beta-5-Codebasis und die QA-Dateien sind auf dem Entwicklungszweig. Die 14 HA-Integrationstests haben den GitHub-Actions-Lauf erfolgreich bestanden. Die optionale Docker-Oberfläche und echte Wallbox wurden nicht getestet.**
+Die veröffentlichte Beta 4 bleibt auf `main`. Der Entwicklungszweig `dev/evcc-simulator` dokumentiert das Vorhaben. Das Paket hier enthält die neue Beta-5-Codebasis und den vollständigen Testlabor-Aufbau. **Die vollständige Beta-5-Codebasis und die QA-Dateien liegen auf dem Entwicklungszweig. 14 automatisierte HA-Integrationstests und die interaktiven virtuellen Docker-Praxistests sind bestanden. Ein Test mit echter evcc-/Wallbox-Hardware steht aus.**
