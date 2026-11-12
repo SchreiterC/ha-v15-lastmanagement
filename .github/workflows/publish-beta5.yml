@@ -1,0 +1,60 @@
+name: Publish V15 Beta 5
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - custom_components/v15_lastmanagement/manifest.json
+      - .github/workflows/publish-beta5.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v15-beta5-release
+  cancel-in-progress: false
+
+jobs:
+  publish-beta5:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Check integration version
+        id: check_version
+        run: |
+          python - <<'PY'
+          import json, os
+          with open("custom_components/v15_lastmanagement/manifest.json", encoding="utf-8") as f:
+              version = json.load(f)["version"]
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"version={version}\n")
+          print("Integration version:", version)
+          PY
+      - name: Run regression tests
+        if: steps.check_version.outputs.version == '0.3.5b5'
+        run: |
+          python -m compileall -q custom_components/v15_lastmanagement
+          python -m unittest discover -s tests -q
+      - name: Publish GitHub prerelease (idempotent)
+        if: steps.check_version.outputs.version == '0.3.5b5'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view v0.3.5b5 --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Beta 5 release already exists; nothing to do."
+            exit 0
+          fi
+          gh release create v0.3.5b5 \
+            --repo "$GH_REPO" \
+            --target "$GITHUB_SHA" \
+            --title "V15 Lastmanagement 0.3.5 Beta 5 – evcc-Pilot" \
+            --notes-file RELEASE_NOTES_BETA5.md \
+            --prerelease
+          gh release view v0.3.5b5 --repo "$GH_REPO" --json url,isPrerelease,tagName
