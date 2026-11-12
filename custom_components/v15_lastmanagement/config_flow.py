@@ -17,6 +17,17 @@ from .const import (
     DEFAULT_EVCC_PHASES, DEFAULT_EVCC_MIN_A, DEFAULT_EVCC_MAX_A,
     DEFAULT_EVCC_VOLTAGE, DEFAULT_EVCC_MARGIN_W, DEFAULT_EVCC_STABLE_S,
     DEFAULT_EVCC_STEP_S,
+    CONF_GOE_CONFIGURED, CONF_GOE_HOST, CONF_GOE_EXCLUSIVE,
+    CONF_GOE_PHASES, CONF_GOE_MIN_A, CONF_GOE_MAX_A,
+    CONF_GOE_MARGIN_W, CONF_GOE_STABLE_S, CONF_GOE_STEP_S,
+    CONF_GOE_ALLOW_PAUSE,
+)
+from .goe_logic import validated_local_ipv4
+
+GOE_OPTION_KEYS = (
+    CONF_GOE_HOST, CONF_GOE_EXCLUSIVE, CONF_GOE_PHASES,
+    CONF_GOE_MIN_A, CONF_GOE_MAX_A, CONF_GOE_MARGIN_W,
+    CONF_GOE_STABLE_S, CONF_GOE_STEP_S, CONF_GOE_ALLOW_PAUSE,
 )
 
 EVCC_OPTION_KEYS = (
@@ -54,6 +65,8 @@ def schema(values=None):
             vol.All(vol.Coerce(float), vol.Range(min=0, max=5000)),
         vol.Required(CONF_EVCC_CONFIGURED,
                      default=values.get(CONF_EVCC_CONFIGURED, False)): bool,
+        vol.Required(CONF_GOE_CONFIGURED,
+                     default=values.get(CONF_GOE_CONFIGURED, False)): bool,
     })
 
 
@@ -112,7 +125,50 @@ def evcc_schema(previous=None):
     })
 
 
+
+
+def goe_schema(previous=None):
+    """Direct go-e API v2: a private IPv4 host and deliberately bounded current."""
+    v = previous or {}
+    return vol.Schema({
+        vol.Required(CONF_GOE_HOST, default=v.get(CONF_GOE_HOST, vol.UNDEFINED)):
+            vol.All(str, vol.Length(min=7, max=15)),
+        vol.Required(CONF_GOE_EXCLUSIVE,
+                     default=v.get(CONF_GOE_EXCLUSIVE, False)): bool,
+        vol.Required(CONF_GOE_PHASES,
+                     default=v.get(CONF_GOE_PHASES, 3)): vol.In([1, 3]),
+        vol.Required(CONF_GOE_MIN_A,
+                     default=v.get(CONF_GOE_MIN_A, DEFAULT_EVCC_MIN_A)):
+            vol.All(vol.Coerce(int), vol.Range(min=6, max=32)),
+        vol.Required(CONF_GOE_MAX_A,
+                     default=v.get(CONF_GOE_MAX_A, DEFAULT_EVCC_MAX_A)):
+            vol.All(vol.Coerce(int), vol.Range(min=6, max=32)),
+        vol.Required(CONF_GOE_MARGIN_W,
+                     default=v.get(CONF_GOE_MARGIN_W, DEFAULT_EVCC_MARGIN_W)):
+            vol.All(vol.Coerce(int), vol.Range(min=0, max=3000)),
+        vol.Required(CONF_GOE_STABLE_S,
+                     default=v.get(CONF_GOE_STABLE_S, DEFAULT_EVCC_STABLE_S)):
+            vol.All(vol.Coerce(int), vol.Range(min=30, max=900)),
+        vol.Required(CONF_GOE_STEP_S,
+                     default=v.get(CONF_GOE_STEP_S, DEFAULT_EVCC_STEP_S)):
+            vol.All(vol.Coerce(int), vol.Range(min=30, max=300)),
+        vol.Required(CONF_GOE_ALLOW_PAUSE,
+                     default=v.get(CONF_GOE_ALLOW_PAUSE, False)): bool,
+    })
+
+
+def goe_error(data):
+    try:
+        validated_local_ipv4(data[CONF_GOE_HOST])
+    except (ValueError, KeyError, TypeError):
+        return "goe_local_address"
+    if data[CONF_GOE_MIN_A] > data[CONF_GOE_MAX_A]:
+        return "goe_current_limits"
+    return None
+
 def validation_error(data):
+    if data.get(CONF_EVCC_CONFIGURED, False) and data.get(CONF_GOE_CONFIGURED, False):
+        return "charger_conflict"
     if data[CONF_RESERVE] >= data[CONF_LIMIT]:
         return "reserve_too_high"
     if data.get(CONF_RESTORE, False) and not data.get(CONF_LOADS):
@@ -146,6 +202,8 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _continue_setup(self):
         if self._pending_data.get(CONF_EVCC_CONFIGURED):
             return await self.async_step_evcc()
+        if self._pending_data.get(CONF_GOE_CONFIGURED):
+            return await self.async_step_goe()
         await self.async_set_unique_id("v15_main")
         self._abort_if_unique_id_configured()
         return self.async_create_entry(title="V15 Lastmanagement", data=self._pending_data)
@@ -174,6 +232,18 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = error
         return self.async_show_form(step_id="evcc", data_schema=evcc_schema(user_input), errors=errors)
 
+    async def async_step_goe(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            error = goe_error(user_input)
+            if error is None:
+                self._pending_data.update(user_input)
+                await self.async_set_unique_id("v15_main")
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(title="V15 Lastmanagement", data=self._pending_data)
+            errors["base"] = error
+        return self.async_show_form(step_id="goe", data_schema=goe_schema(user_input), errors=errors)
+
     @staticmethod
     def async_get_options_flow(config_entry):
         return V15OptionsFlow()
@@ -200,6 +270,8 @@ class V15OptionsFlow(config_entries.OptionsFlow):
     async def _continue_options(self):
         if self._pending_data.get(CONF_EVCC_CONFIGURED):
             return await self.async_step_evcc()
+        if self._pending_data.get(CONF_GOE_CONFIGURED):
+            return await self.async_step_goe()
         return self.async_create_entry(title="", data=self._pending_data)
 
     async def async_step_restore(self, user_input=None):
@@ -226,5 +298,18 @@ class V15OptionsFlow(config_entries.OptionsFlow):
             errors["base"] = error
         return self.async_show_form(
             step_id="evcc", data_schema=evcc_schema(user_input or self._previous),
+            errors=errors,
+        )
+
+    async def async_step_goe(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            error = goe_error(user_input)
+            if error is None:
+                self._pending_data.update(user_input)
+                return self.async_create_entry(title="", data=self._pending_data)
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="goe", data_schema=goe_schema(user_input or self._previous),
             errors=errors,
         )
