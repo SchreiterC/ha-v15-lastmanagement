@@ -136,7 +136,7 @@ def goe_schema(previous=None):
         vol.Required(CONF_GOE_EXCLUSIVE,
                      default=v.get(CONF_GOE_EXCLUSIVE, False)): bool,
         vol.Required(CONF_GOE_PHASES,
-                     default=v.get(CONF_GOE_PHASES, 3)): vol.In([1, 3]),
+                     default=v.get(CONF_GOE_PHASES, 3)): vol.In([3]),
         vol.Required(CONF_GOE_MIN_A,
                      default=v.get(CONF_GOE_MIN_A, DEFAULT_EVCC_MIN_A)):
             vol.All(vol.Coerce(int), vol.Range(min=6, max=32)),
