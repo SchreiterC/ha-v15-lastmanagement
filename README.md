@@ -17,19 +17,28 @@ V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt di
 - Diagnose mit verwalteten Abschaltungen, Rückschaltkandidat und Wartegrund.
 - 14 Entitäten (7 reguläre Messsensoren einschließlich Diagnose + 1 neuer Abschaltungszähler, 3 Binärsensoren, 3 Steuerschalter). Die bestehenden `unique_id`s bleiben unverändert.
 
-## Installation und Update über HACS
+<!-- ha-marketplace:exclude-start -->
+## Installation und Update über den Home Assistant Marketplace
 
-1. Das Repository `https://github.com/SchreiterC/ha-v15-lastmanagement` als benutzerdefiniertes Repository vom Typ **Integration** hinzufügen, falls noch nicht vorhanden.
-2. V15 Lastmanagement in HACS herunterladen oder auf die neue Version aktualisieren.
-3. Home Assistant vollständig neu starten.
-4. Bei Neuinstallation V15 unter **Einstellungen → Geräte & Dienste** einrichten. Bestehende Installationen **nicht löschen**. Die 13 bisherigen Entitäten behalten ihre Identität, zusätzlich erscheint „V15 Verwaltete Abschaltungen“.
-5. Bei einem Upgrade von Beta 2: **V15 → Konfigurieren/Optionen** öffnen, um die neuen Wiedereinschaltoptionen zu setzen. Standardmäßig bleibt die Wiedereinschaltung deaktiviert.
+[![Im Home Assistant Marketplace öffnen](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration)
+
+**Voraussetzung:** Home Assistant 2026.11 oder neuer. V15 ist noch nicht im allgemeinen Marketplace-Katalog gelistet und wird daher als benutzerdefiniertes Repository hinzugefügt.
+
+1. [V15 Lastmanagement im Marketplace öffnen](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration). Alternativ unter **Einstellungen → Marketplace → Add from link** das Repository `https://github.com/SchreiterC/ha-v15-lastmanagement` hinzufügen. Für benutzerdefinierte Repositories ist eine GitHub-Verbindung im Marketplace erforderlich.
+2. **Beta-Version aktivieren:** Da derzeit ausschließlich Vorabversionen veröffentlicht sind, unter **Einstellungen → Geräte & Dienste → Marketplace** beim Repository **V15 Lastmanagement** die zunächst deaktivierte Entität **Pre-release** aktivieren und den Schalter einschalten.
+3. **V15 Lastmanagement** im Marketplace installieren bzw. auf eine neue Version aktualisieren.
+4. Home Assistant vollständig neu starten.
+5. Bei Neuinstallation V15 unter **Einstellungen → Geräte & Dienste** einrichten. Bestehende Installationen **nicht löschen**. Die 13 bisherigen Entitäten behalten ihre Identität, zusätzlich erscheint „V15 Verwaltete Abschaltungen“.
+6. Bei einem Upgrade von Beta 2: **V15 → Konfigurieren/Optionen** öffnen, um die neuen Wiedereinschaltoptionen zu setzen. Standardmäßig bleibt die Wiedereinschaltung deaktiviert.
+
+Bereits mit HACS installierte Integrationen werden beim Umstieg auf Home Assistant 2026.11 automatisch in den Marketplace übernommen. V15 muss dafür nicht neu installiert werden.
+<!-- ha-marketplace:exclude-end -->
 
 ## Sprache und Erklärung im Einrichtungsdialog
 
 Die Einstellungsseiten sind auf **Deutsch und Englisch** übersetzt. Die Sprache richtet sich nach der eingestellten Sprache des Home-Assistant-Benutzers. Alle Felder enthalten nun zusätzliche Erläuterungen. Auf der zweiten Seite erklärt V15 die benötigten Leistungswerte in **Watt**, zeigt die ausgewählten Schalter und warnt vor zu kleinen Schätzwerten.
 
-Nach einem manuellen Austausch der Integrationsdateien ist ein **vollständiger Home-Assistant-Neustart** erforderlich. Bei nicht aktualisierten Texten die Seite neu laden (gegebenenfalls Browser-Cache aktualisieren). Bei einem Upgrade über HACS dieselben Schritte nach dem Download ausführen.
+Nach einem manuellen Austausch der Integrationsdateien ist ein **vollständiger Home-Assistant-Neustart** erforderlich. Bei nicht aktualisierten Texten die Seite neu laden (gegebenenfalls Browser-Cache aktualisieren). Bei einem Upgrade über den Marketplace dieselben Schritte nach dem Download ausführen.
 
 ## Konfiguration der Wiedereinschaltung
 
