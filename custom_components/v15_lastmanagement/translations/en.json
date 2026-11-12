@@ -76,7 +76,7 @@
         "data": {
           "goe_local_ipv4": "Local go-e IPv4 address (no URL, port or path)",
           "goe_other_regulators_disabled": "I confirm evcc and other wallbox regulators are disabled for this charger",
-          "goe_installed_phases": "Conservative installed/possible phase count (1 or 3)",
+          "goe_installed_phases": "Conservative phase count: 3 (required in this pilot)",
           "goe_min_current_a": "Minimum charging current (A)",
           "goe_max_current_a": "Maximum charging current (A)",
           "goe_margin_w": "Additional go-e safety margin (W)",
@@ -87,7 +87,7 @@
         "data_description": {
           "goe_local_ipv4": "A private LAN IPv4 address, e.g. 192.168.1.50. HTTP API v2 must be enabled in the charger. API HTTP authentication is not supported in this pilot.",
           "goe_other_regulators_disabled": "This is a manual safety confirmation, not an automatic lock. Disable evcc, go-e app schedules and any other system writing go-e amp/frc before enabling V15 live control.",
-          "goe_installed_phases": "Set 3 for a three-phase-capable charger, even if it currently charges on one phase. V15 never switches phases.",
+          "goe_installed_phases": "Beta 6 only supports a 3-phase limit. A three-phase-capable wallbox must be treated as 3-phase even if it is currently charging on one phase. V15 never switches phases.",
           "goe_min_current_a": "Usually 6 A. Lower currents are not supported.",
           "goe_max_current_a": "Never exceed the charger/cable/circuit rating. V15 will not increase above the value present when V15 live control was activated.",
           "goe_margin_w": "Extra safety margin beyond V15's normal demand reserve.",
@@ -186,7 +186,7 @@
         "data": {
           "goe_local_ipv4": "Local go-e IPv4 address (no URL, port or path)",
           "goe_other_regulators_disabled": "I confirm evcc and other wallbox regulators are disabled for this charger",
-          "goe_installed_phases": "Conservative installed/possible phase count (1 or 3)",
+          "goe_installed_phases": "Conservative phase count: 3 (required in this pilot)",
           "goe_min_current_a": "Minimum charging current (A)",
           "goe_max_current_a": "Maximum charging current (A)",
           "goe_margin_w": "Additional go-e safety margin (W)",
@@ -197,7 +197,7 @@
         "data_description": {
           "goe_local_ipv4": "A private LAN IPv4 address, e.g. 192.168.1.50. HTTP API v2 must be enabled in the charger. API HTTP authentication is not supported in this pilot.",
           "goe_other_regulators_disabled": "This is a manual safety confirmation, not an automatic lock. Disable evcc, go-e app schedules and any other system writing go-e amp/frc before enabling V15 live control.",
-          "goe_installed_phases": "Set 3 for a three-phase-capable charger, even if it currently charges on one phase. V15 never switches phases.",
+          "goe_installed_phases": "Beta 6 only supports a 3-phase limit. A three-phase-capable wallbox must be treated as 3-phase even if it is currently charging on one phase. V15 never switches phases.",
           "goe_min_current_a": "Usually 6 A. Lower currents are not supported.",
           "goe_max_current_a": "Never exceed the charger/cable/circuit rating. V15 will not increase above the value present when V15 live control was activated.",
           "goe_margin_w": "Extra safety margin beyond V15's normal demand reserve.",
