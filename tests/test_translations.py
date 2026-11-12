@@ -9,6 +9,7 @@ FIELDS = {
     "grid_sensor", "limit_kw", "reserve_kw", "reverse_sign", "stale_seconds",
     "load_switches", "auto_restore", "restore_stable_seconds",
     "restore_min_off_seconds", "restore_margin_watts", "evcc_configured",
+    "goe_configured",
 }
 
 
@@ -52,6 +53,17 @@ class TestFlowTranslations(unittest.TestCase):
                     self.assertEqual(set(step["data"]), set(step["data_description"]))
                     self.assertGreaterEqual(len(step["data"]), 12)
                     self.assertGreater(len(step["description"]), 150)
+
+    def test_goe_page_is_bilingual_and_has_safety_warnings(self):
+        for language, content in (("de", self.de), ("en", self.en)):
+            for section in ("config", "options"):
+                with self.subTest(language=language, section=section):
+                    step = content[section]["step"]["goe"]
+                    self.assertEqual(set(step["data"]), set(step["data_description"]))
+                    self.assertEqual(len(step["data"]), 9)
+                    self.assertIn("goe_other_regulators_disabled", step["data"])
+                    self.assertIn("goe_local_ipv4", step["data"])
+                    self.assertGreater(len(step["description"]), 180)
 
     def test_locales_have_matching_structure(self):
         def keys(value):
