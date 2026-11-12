@@ -1,0 +1,45 @@
+# Independent go-e simulator + Home Assistant. No real wallbox connection.
+# Start in lab_goe/: docker compose up -d
+services:
+  homeassistant-goe-lab:
+    image: ghcr.io/home-assistant/home-assistant:2026.11.0
+    container_name: v15-virtual-ha-goe-lab
+    restart: unless-stopped
+    environment:
+      TZ: Europe/Vienna
+    volumes:
+      - ./config:/config
+      - ../custom_components/v15_lastmanagement:/config/custom_components/v15_lastmanagement:ro
+    ports:
+      - "127.0.0.1:8125:8123"
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - goe-simulator
+    networks:
+      - v15_goe
+
+  goe-simulator:
+    image: python:3.13-alpine
+    container_name: v15-fake-goe-api-v2
+    restart: unless-stopped
+    environment:
+      PORT: "80"
+      PYTHONDONTWRITEBYTECODE: "1"
+    command: ["python", "/app/goe_simulator.py"]
+    volumes:
+      - ./goe_simulator.py:/app/goe_simulator.py:ro
+    ports:
+      - "127.0.0.1:8126:80"
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      v15_goe:
+        ipv4_address: 172.28.201.10
+
+networks:
+  v15_goe:
+    name: v15_goe_lab
+    ipam:
+      config:
+        - subnet: 172.28.201.0/24
