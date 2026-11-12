@@ -170,6 +170,8 @@ class V15GoeController(V15EvccController):
             raise ValueError("go-e ist nicht konfiguriert oder nicht erreichbar")
         if not self.monitor.config.get(CONF_GOE_EXCLUSIVE, False):
             raise ValueError("Zuerst andere Wallbox-Regler deaktivieren und dies in den Optionen bestätigen")
+        if int(self.config[CONF_EVCC_FIXED_PHASES]) != 3:
+            raise ValueError("Der go-e-Pilot erlaubt derzeit nur die konservative 3-Phasen-Konfiguration")
         if self.monitor.demo_data:
             raise ValueError("Künstliche V15-Demo vor Aktivierung deaktivieren")
         if self.monitor.evcc.enabled:
