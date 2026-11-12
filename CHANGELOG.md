@@ -1,5 +1,17 @@
 # Versionshistorie
 
+## 0.3.5b6 – Beta 6: direkte go-e-Anbindung (Entwicklung, nicht veröffentlicht)
+
+- Alternative zur evcc-Anbindung: direkte Steuerung eines go-e Chargers über dessen **lokale HTTP-API v2**.
+- Einrichtungsdialog für private LAN-IP, Phasenzahl, 6–32-A-Stromgrenzen, Sicherheitsreserve, Wartezeiten und optionale Ladepause.
+- **Exklusive Konfiguration:** V15 erlaubt nicht zugleich evcc- und go-e-Livesteuerung für denselben Eintrag. Eine manuelle Bestätigung verlangt das Abschalten aller anderen Regler für diese Wallbox. Diese Bestätigung kann konkurrierende Systeme nicht technisch sperren.
+- Gemeinsame bewährte Strombudget- und Rampenlogik, neuer go-e-Zielstromsensor und separater Aktivierungsschalter.
+- Lokale Messdaten (`amp`, `frc`, `nrg[11]`, `pnp`), Änderungsbestätigung, Abbruch bei ungültigen Daten oder manueller Änderung.
+- Ladepause über `frc=1`, Wiederaufnahme nur der eigenen Pause über `frc=0`, niemals erzwungene Ladung mit `frc=2`.
+- startsicher: Go-e-Steuerung bleibt nach jedem Neustart/Reload ausgeschaltet. Keine automatische Rücksetzung verbleibender Gerätebegrenzungen.
+- Deutsche/englische Setup-Texte, Fake-API-Tests und Tests mit HA-Laufzeit.
+- **Offen:** go-e-/Wallbox-Hardwaretest, Kommunikationsverhalten bei echter Fahrzeugladung; keine Freigabe für ungeprüften produktiven Einsatz.
+
 ## 0.3.5b5 – Beta 5: optionale evcc-Ladestromsteuerung (2026-11-12)
 
 - **Neu:** Optionale Anbindung an die bestehenden evcc-Entitäten von Home Assistant mit separatem Einrichtungsdialog, eigener ausdrücklicher Steuerfreigabe und Zielstromsensor.
