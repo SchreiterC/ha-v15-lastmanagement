@@ -76,7 +76,7 @@
         "data": {
           "goe_local_ipv4": "Lokale IPv4-Adresse des go-e Chargers (ohne URL oder Port)",
           "goe_other_regulators_disabled": "Ich bestätige: evcc und andere Wallbox-Regler sind für diesen Charger deaktiviert",
-          "goe_installed_phases": "Konservative Phasenzahl der Installation (1 oder 3)",
+          "goe_installed_phases": "Konservative Phasenzahl: 3 (im Pilot verbindlich)",
           "goe_min_current_a": "Minimaler Ladestrom (A)",
           "goe_max_current_a": "Maximaler Ladestrom (A)",
           "goe_margin_w": "Zusätzlicher go-e-Sicherheitspuffer (W)",
@@ -87,7 +87,7 @@
         "data_description": {
           "goe_local_ipv4": "Private LAN-Adresse, z. B. 192.168.1.50. Die HTTP-API v2 muss am Charger aktiviert sein. HTTP-Authentifizierung wird im Pilot nicht unterstützt.",
           "goe_other_regulators_disabled": "Dies ist eine manuelle Sicherheitsbestätigung, keine technische Sperre. evcc, Ladepläne der go-e-App und andere Regler für amp/frc vorher deaktivieren.",
-          "goe_installed_phases": "Bei dreiphasig möglicher Ladung 3 wählen, auch wenn aktuell einphasig geladen wird. V15 schaltet keine Phasen um.",
+          "goe_installed_phases": "Beta 6 unterstützt derzeit nur drei Phasen. Bei einer dreiphasig möglichen Wallbox muss auch während einphasiger Ladung mit 3 Phasen gerechnet werden. V15 schaltet keine Phasen um.",
           "goe_min_current_a": "Üblicherweise 6 A. Kleinere Ladestromstärken werden nicht unterstützt.",
           "goe_max_current_a": "Niemals über dem zulässigen Wert von Charger, Kabel und Installation. V15 erhöht nicht über den Strom beim Einschalten der Livesteuerung.",
           "goe_margin_w": "Zusätzlicher Puffer über die normale Sicherheitsreserve von V15 hinaus.",
@@ -186,7 +186,7 @@
         "data": {
           "goe_local_ipv4": "Lokale IPv4-Adresse des go-e Chargers (ohne URL oder Port)",
           "goe_other_regulators_disabled": "Ich bestätige: evcc und andere Wallbox-Regler sind für diesen Charger deaktiviert",
-          "goe_installed_phases": "Konservative Phasenzahl der Installation (1 oder 3)",
+          "goe_installed_phases": "Konservative Phasenzahl: 3 (im Pilot verbindlich)",
           "goe_min_current_a": "Minimaler Ladestrom (A)",
           "goe_max_current_a": "Maximaler Ladestrom (A)",
           "goe_margin_w": "Zusätzlicher go-e-Sicherheitspuffer (W)",
@@ -197,7 +197,7 @@
         "data_description": {
           "goe_local_ipv4": "Private LAN-Adresse, z. B. 192.168.1.50. Die HTTP-API v2 muss am Charger aktiviert sein. HTTP-Authentifizierung wird im Pilot nicht unterstützt.",
           "goe_other_regulators_disabled": "Dies ist eine manuelle Sicherheitsbestätigung, keine technische Sperre. evcc, Ladepläne der go-e-App und andere Regler für amp/frc vorher deaktivieren.",
-          "goe_installed_phases": "Bei dreiphasig möglicher Ladung 3 wählen, auch wenn aktuell einphasig geladen wird. V15 schaltet keine Phasen um.",
+          "goe_installed_phases": "Beta 6 unterstützt derzeit nur drei Phasen. Bei einer dreiphasig möglichen Wallbox muss auch während einphasiger Ladung mit 3 Phasen gerechnet werden. V15 schaltet keine Phasen um.",
           "goe_min_current_a": "Üblicherweise 6 A. Kleinere Ladestromstärken werden nicht unterstützt.",
           "goe_max_current_a": "Niemals über dem zulässigen Wert von Charger, Kabel und Installation. V15 erhöht nicht über den Strom beim Einschalten der Livesteuerung.",
           "goe_margin_w": "Zusätzlicher Puffer über die normale Sicherheitsreserve von V15 hinaus.",
