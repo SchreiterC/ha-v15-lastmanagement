@@ -2,7 +2,7 @@
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 
-**Beta-Testversion 0.3.5b5. Keine zertifizierte Begrenzung abrechnungsrelevanter Lastspitzen.**
+**Entwicklungsversion 0.3.5b6 (noch nicht veröffentlicht). Keine zertifizierte Begrenzung abrechnungsrelevanter Lastspitzen.**
 
 V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt die voraussichtliche Viertelstundenleistung und kann bei drohender Überschreitung ausgewählte **unkritische** Home-Assistant-Schalter abschalten. Ab Beta 3 ist eine **optionale automatische Wiedereinschaltung** möglich.
 
@@ -100,6 +100,30 @@ Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerung
 - Keine Phasenumschaltung durch V15, keine Steuerung von Fahrzeug-SoC, Ladeplänen, Solarpriorität oder dynamischen Strompreisen. Diese Aufgaben verbleiben bei evcc.
 - Die Berechnung mit 230 V pro Phase ist eine Näherung. Leistungsbegrenzungen sind nicht abrechnungsgenau garantiert.
 - Die aktive evcc-Steuerung darf wegen der noch ausstehenden Hardwaretests **nicht ungeprüft in einer produktiven Anlage** eingeschaltet werden.
+
+## In Entwicklung: Beta 6 – direkte go-e-Charger-Anbindung
+
+**Nur Entwicklungszweig `dev/goe-beta6`. Nicht als neue öffentliche Version freigegeben und nicht für den ungeprüften produktiven Betrieb vorgesehen.** Die bisherige evcc-Anbindung aus Beta 5 bleibt erhalten.
+
+### Zwei alternative Wallbox-Anbindungen
+
+- **evcc:** Bestehende Home-Assistant-evcc-Entitäten wie in Beta 5.
+- **go-e direkt:** Lokale HTTP-API v2 des go-e Chargers, ohne evcc als Zwischenschicht.
+
+In der V15-Konfiguration ist **nur eine der beiden Anbindungen auswählbar**. Die go-e-Regelung übernimmt dieselbe konservative Viertelstundenbudgetberechnung, Verzögerungen für Stromerhöhungen, Bestätigung nach Stellbefehlen und die bewusste Startsperre nach Neustart/Reload. Neu erscheinen bei go-e die Entitäten **V15 go-e Zielstrom** und **V15 go-e-Ladestromregelung**. Ohne eigene Aktivierung werden keine Schreibbefehle an go-e gesendet.
+
+### Technische Voraussetzungen und Grenzen
+
+1. go-e Charger mit **lokaler HTTP-API v2** (z. B. Gemini flex) im selben lokalen Netz. Die API in der go-e-App aktivieren. Der Beta-6-Prototyp unterstützt nur eine private IPv4-Adresse aus 10/8, 172.16/12 oder 192.168/16, keine Cloud-API, keinen Portwechsel und keine HTTP-Authentifizierung.
+2. **evcc und alle anderen Systeme, die denselben Charger steuern, ausdrücklich deaktivieren.** Das Häkchen im V15-Dialog ist lediglich die Bestätigung durch den Benutzer, keine technische Sperre von evcc. Das gilt auch für konkurrierende go-e-Ladepläne.
+3. go-e 11 kW als Ausgangswert: **3 Phasen, 6–16 A**, 230 V je Phase, zusätzlicher Puffer 300 W, stabile Reserve 90 s und Änderungsabstand mindestens 30 s. Drei Phasen konfigurieren, wenn die Wallbox grundsätzlich dreiphasig laden kann. V15 schaltet keine Phasen um.
+4. Die API liefert `amp` (Sollstrom), `frc` (0 = Neutral, 1 = Aus, 2 = erzwungen Ein), `nrg[11]` (gemessene Gesamtleistung in W) sowie `pnp` (Phasenzahl). V15 schreibt **ausschließlich** `amp` und bei ausdrücklich aktivierter Ladepause `frc=1`. Nach einer V15-eigenen Pause wird nur `frc=0` (Neutral) wiederhergestellt, niemals `frc=2` (erzwungen Ein).
+5. Ist das verfügbare Restbudget zu klein, begrenzt V15 zunächst den Strom oder pausiert bei ausdrücklich freigegebener Ladepause. Nach stabiler Reserve wird vor der Wiederaufnahme der Maximalstrom auf 6 A gesenkt. Ein manueller Eingriff in `amp` oder `frc` beendet die V15-Steuerung.
+6. Nach Deaktivierung, Ladefehler oder Neustart stellt V15 **weder eine eigene Ladepause noch die vorherige Stromgrenze automatisch zurück**. Bitte die Einstellungen am Charger selbst prüfen.
+
+**Aktueller Teststand:** Automatisierte Python- und Home-Assistant-Laufzeitprüfungen mit simulierten lokalen go-e-API-Antworten. Für die go-e-Direktanbindung gibt es **noch keinen erfolgreichen Hardwaretest**, keine bestätigten Kommunikationslatenzen des realen Chargers und keinen Test mit tatsächlicher Fahrzeugladung. Ein zuverlässiger technisch erzwungener Ausschluss anderer externer Regler ist nicht möglich.
+
+[go-e-API-v2-Dokumentation](https://github.com/goecharger/go-eCharger-API-v2) · [Beta-6-Entwicklungszweig](https://github.com/SchreiterC/ha-v15-lastmanagement/tree/dev/goe-beta6)
 
 ## Sicherheit und Grenzen
 
