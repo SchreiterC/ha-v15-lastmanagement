@@ -1,0 +1,118 @@
+name: Publish V15 0.3.5 stable
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - custom_components/v15_lastmanagement/manifest.json
+      - .github/workflows/publish-stable-035.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v15-stable-035-release
+  cancel-in-progress: false
+
+jobs:
+  check-version:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      publish: \${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Require stable 0.3.5 manifest
+        id: version
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          with open("custom_components/v15_lastmanagement/manifest.json", encoding="utf-8") as f:
+              version = json.load(f)["version"]
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write("publish=" + ("true" if version == "0.3.5" else "false") + "\n")
+          print("Version for stable 0.3.5 publisher:", version)
+          PY
+
+  python-tests:
+    needs: check-version
+    if: needs.check-version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Syntax and unit/regression suite
+        run: |
+          python -m compileall -q custom_components/v15_lastmanagement
+          python -m unittest discover -s tests -v
+
+  homeassistant-runtime:
+    needs: check-version
+    if: needs.check-version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: qa_ha/requirements.txt
+      - name: Install isolated Home Assistant test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r qa_ha/requirements.txt
+      - name: Run in-process Home Assistant integration suite
+        run: python -c "import homeassistant; import pytest; raise SystemExit(pytest.main(['-q', 'qa_ha', '--disable-warnings']))"
+
+  hassfest:
+    needs: check-version
+    if: needs.check-version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: home-assistant/actions/hassfest@master
+
+  marketplace-validation:
+    needs: check-version
+    if: needs.check-version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hacs/action@main
+        with:
+          category: integration
+
+  publish:
+    needs:
+      - check-version
+      - python-tests
+      - homeassistant-runtime
+      - hassfest
+      - marketplace-validation
+    if: needs.check-version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Create regular GitHub release once (never prerelease)
+        env:
+          GH_TOKEN: \${{ github.token }}
+          GH_REPO: \${{ github.repository }}
+        run: |
+          if gh release view v0.3.5 --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release v0.3.5 already exists; verifying regular release status."
+          else
+            gh release create v0.3.5 \
+              --repo "$GH_REPO" \
+              --target "$GITHUB_SHA" \
+              --title "V15 Lastmanagement 0.3.5 – Erstes reguläres Release" \
+              --notes-file RELEASE_NOTES_0.3.5.md
+          fi
+          gh release view v0.3.5 --repo "$GH_REPO" \
+            --json tagName,isPrerelease,isDraft,url \
+            | jq -e '.tagName == "v0.3.5" and .isPrerelease == false and .isDraft == false'
