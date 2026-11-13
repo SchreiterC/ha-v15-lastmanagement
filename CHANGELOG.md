@@ -1,6 +1,6 @@
 # Versionshistorie
 
-## 0.3.5b6 – Beta 6: direkte go-e-Anbindung (Entwicklung, nicht veröffentlicht)
+## 0.3.6b1 – direkte go-e-Anbindung (Entwicklung, nicht veröffentlicht)
 
 - Alternative zur evcc-Anbindung: direkte Steuerung eines go-e Chargers über dessen **lokale HTTP-API v2**.
 - Einrichtungsdialog für private LAN-IP, Phasenzahl, 6–32-A-Stromgrenzen, Sicherheitsreserve, Wartezeiten und optionale Ladepause.
@@ -11,6 +11,16 @@
 - startsicher: Go-e-Steuerung bleibt nach jedem Neustart/Reload ausgeschaltet. Keine automatische Rücksetzung verbleibender Gerätebegrenzungen.
 - Deutsche/englische Setup-Texte, Fake-API-Tests und Tests mit HA-Laufzeit.
 - **Offen:** go-e-/Wallbox-Hardwaretest, Kommunikationsverhalten bei echter Fahrzeugladung; keine Freigabe für ungeprüften produktiven Einsatz.
+
+## 0.3.5 – Erstes reguläres Release (2026-11-13)
+
+- Erste reguläre, nicht als Prerelease gekennzeichnete Veröffentlichung von V15 Lastmanagement. Version 0.3.5 basiert funktional auf Beta 5 (`0.3.5b5`).
+- **Regulärer Funktionsumfang:** Überwachung fester 15-Minuten-Zeitfenster, Netzbezug und Leistungsprognose, konservatives Restbudget, priorisierte Abschaltung konfigurierter unkritischer Verbraucher, optionale sichere Wiedereinschaltung selbst abgeschalteter Verbraucher, Diagnose und Probelauf.
+- **Experimentell, weiterhin nur als Pilot:** optionale evcc-Ladestromsteuerung samt Ladepause und Wiederaufnahme. Separat einzurichten und ausdrücklich zu aktivieren. Bislang mit virtuellen Home-Assistant-/evcc-Entitäten, **nicht mit realer evcc-/Wallbox-/Fahrzeughardware** getestet. Keine Freigabe für ungeprüften produktiven Betrieb.
+- Für die bisherige Beta 5: 63 Logiktests und 14 Home-Assistant-Integrationstests sowie acht virtuelle Docker-Praxisszenarien erfolgreich. Die Release-Prüfungen werden für 0.3.5 erneut ausgeführt.
+- Installations- und Updatehinweise für den **Home Assistant Marketplace** aktualisiert. Für 0.3.5 ist keine Aktivierung der Pre-release-Option notwendig.
+- Bestehende Konfigurationen und Entitätskennungen bleiben erhalten. Keine automatischen Last- oder evcc-Steuerfreigaben nach Neustart/Reload.
+- **Sicherheitsgrenze:** V15 ist keine geeichte oder garantierte Viertelstunden-Spitzenleistungsbegrenzung. Vorsicht bei Messwertqualität, Netzverzögerungen, Konfigurationsfehlern und kritischen Lasten.
 
 ## 0.3.5b5 – Beta 5: optionale evcc-Ladestromsteuerung (2026-11-12)
 
