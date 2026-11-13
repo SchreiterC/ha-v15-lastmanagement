@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dev/evcc-simulator
+      - dev/goe-beta6
   pull_request:
     paths:
       - custom_components/v15_lastmanagement/**

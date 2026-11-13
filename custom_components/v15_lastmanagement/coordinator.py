@@ -24,6 +24,7 @@ from .const import (
 from .math_v15 import quarter_start, calculate
 from .restore_logic import power_headroom_ok, periods_satisfied
 from .evcc_control import V15EvccController
+from .goe_control import V15GoeController
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +70,10 @@ class V15Monitor:
         self.restore_since = None
         self.restore_status = "Wiedereinschaltung nicht geprüft"
         self.evcc = V15EvccController(self)
+        self.goe = V15GoeController(self)
+        if self.evcc.configured and self.goe.configured:
+            raise ValueError('evcc and direct go-e control are mutually exclusive')
+        self.charger = self.goe if self.goe.configured else self.evcc
 
     def calculate_current(self, now, watts):
         """Fresh quarter-hour budget for a late asynchronous evcc action."""
@@ -325,11 +330,11 @@ class V15Monitor:
         ):
             # A configured switch is shed first; do not adjust evcc and a
             # switch simultaneously based on the same pre-action grid reading.
-            self.evcc._preview(trusted, cal, watts)
-            if self.evcc.enabled:
-                self.evcc.status = "Warte auf vorrangige Lastabschaltung"
+            self.charger._preview(trusted, cal, watts)
+            if self.charger.enabled:
+                self.charger.status = "Warte auf vorrangige Lastabschaltung"
         else:
-            self.evcc.evaluate(now, trusted, cal, watts)
+            self.charger.evaluate(now, trusted, cal, watts)
         self.notify()
 
         cooldown_ok = self.last_shed_time is None or (now - self.last_shed_time).total_seconds() >= 30
@@ -456,9 +461,11 @@ class V15Monitor:
         self.listeners.append(async_track_time_interval(
             self.hass, self.update, timedelta(seconds=5)
         ))
+        await self.goe.async_start()
         self.update()
 
     async def async_stop(self):
+        await self.goe.async_stop()
         self.evcc.deactivate("HA-Neustart oder Konfigurationswechsel; keine automatische evcc-Freigabe")
         self.enabled = False
         self.demo_data = False

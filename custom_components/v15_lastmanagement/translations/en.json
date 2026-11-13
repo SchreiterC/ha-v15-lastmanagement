@@ -16,7 +16,8 @@
           "restore_stable_seconds": "Required period of sufficient headroom (seconds)",
           "restore_min_off_seconds": "Minimum off duration per load (seconds)",
           "restore_margin_watts": "Additional power margin for restoration (W)",
-          "evcc_configured": "Configure optional evcc charging-point control"
+          "evcc_configured": "Configure optional evcc charging-point control",
+          "goe_configured": "Configure optional direct go-e charger control (alternative to evcc)"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -29,7 +30,8 @@
           "restore_stable_seconds": "Available headroom must remain sufficient for this long before restoration is permitted.",
           "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
           "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
-          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand."
+          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
+          "goe_configured": "Uses the local go-e Charger HTTP API v2, not the evcc entities. Select **either evcc or go-e**, never both. This is an experimental, separately enabled pilot."
         }
       },
       "restore": {
@@ -67,13 +69,42 @@
           "evcc_step_seconds": "At least 30 seconds. Wait for entity state confirmation after each command.",
           "evcc_allow_pause": "V15 may change smart to off if even minimum charging power exceeds budget. Only owned pauses may be resumed. The mode can remain off after restart/disable."
         }
+      },
+      "goe": {
+        "title": "Configure direct go-e charger (local HTTP API v2)",
+        "description": "**Optional and experimental.** Enter the charger's private IPv4 address (10.x / 172.16–31.x / 192.168.x). Enable the local HTTP API v2 in the go-e app. No cloud, authentication, phase switching or direct device discovery is implemented.\n\n**IMPORTANT:** evcc and all other controllers must stop writing to this wallbox **before V15 go-e live control is enabled**. Checking the acknowledgment does not technically stop evcc. The go-e controller is OFF after each HA restart/entry reload. Charging current and V15 pauses are not automatically reset after shutdown.",
+        "data": {
+          "goe_local_ipv4": "Local go-e IPv4 address (no URL, port or path)",
+          "goe_other_regulators_disabled": "I confirm evcc and other wallbox regulators are disabled for this charger",
+          "goe_installed_phases": "Conservative phase count: 3 (required in this pilot)",
+          "goe_min_current_a": "Minimum charging current (A)",
+          "goe_max_current_a": "Maximum charging current (A)",
+          "goe_margin_w": "Additional go-e safety margin (W)",
+          "goe_stable_seconds": "Stable reserve required before increase/resume (s)",
+          "goe_step_seconds": "Minimum time between go-e adjustments (s)",
+          "goe_allow_pause": "Allow V15-owned charging pause (frc=1)"
+        },
+        "data_description": {
+          "goe_local_ipv4": "A private LAN IPv4 address, e.g. 192.168.1.50. HTTP API v2 must be enabled in the charger. API HTTP authentication is not supported in this pilot.",
+          "goe_other_regulators_disabled": "This is a manual safety confirmation, not an automatic lock. Disable evcc, go-e app schedules and any other system writing go-e amp/frc before enabling V15 live control.",
+          "goe_installed_phases": "Beta 6 only supports a 3-phase limit. A three-phase-capable wallbox must be treated as 3-phase even if it is currently charging on one phase. V15 never switches phases.",
+          "goe_min_current_a": "Usually 6 A. Lower currents are not supported.",
+          "goe_max_current_a": "Never exceed the charger/cable/circuit rating. V15 will not increase above the value present when V15 live control was activated.",
+          "goe_margin_w": "Extra safety margin beyond V15's normal demand reserve.",
+          "goe_stable_seconds": "The extra power must be available continuously before increasing or resuming charging.",
+          "goe_step_seconds": "At least 30 seconds between go-e writes; each command requires confirmed device feedback.",
+          "goe_allow_pause": "When enabled V15 may set forceState Off (frc=1), then only release its own pause to Neutral (frc=0). It NEVER uses Force On (frc=2)."
+        }
       }
     },
     "error": {
       "reserve_too_high": "The safety reserve must be lower than the threshold.",
       "restore_requires_loads": "Select at least one load switch to enable automatic restoration.",
       "evcc_current_limits": "Minimum charging current must not exceed the maximum.",
-      "evcc_separate_entities": "Charging mode and maximum current must be different entities."
+      "evcc_separate_entities": "Charging mode and maximum current must be different entities.",
+      "charger_conflict": "Choose only one charging backend: evcc OR direct go-e.",
+      "goe_local_address": "Enter a local private RFC1918 IPv4 address without URL or port.",
+      "goe_current_limits": "The minimum charging current must not exceed the maximum."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement is already configured."
@@ -95,7 +126,8 @@
           "restore_stable_seconds": "Required period of sufficient headroom (seconds)",
           "restore_min_off_seconds": "Minimum off duration per load (seconds)",
           "restore_margin_watts": "Additional power margin for restoration (W)",
-          "evcc_configured": "Configure optional evcc charging-point control"
+          "evcc_configured": "Configure optional evcc charging-point control",
+          "goe_configured": "Configure optional direct go-e charger control (alternative to evcc)"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -108,7 +140,8 @@
           "restore_stable_seconds": "Available headroom must remain sufficient for this long before restoration is permitted.",
           "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
           "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
-          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand."
+          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
+          "goe_configured": "Uses the local go-e Charger HTTP API v2, not the evcc entities. Select **either evcc or go-e**, never both. This is an experimental, separately enabled pilot."
         }
       },
       "restore": {
@@ -146,13 +179,42 @@
           "evcc_step_seconds": "At least 30 seconds. Wait for entity state confirmation after each command.",
           "evcc_allow_pause": "V15 may change smart to off if even minimum charging power exceeds budget. Only owned pauses may be resumed. The mode can remain off after restart/disable."
         }
+      },
+      "goe": {
+        "title": "Configure direct go-e charger (local HTTP API v2)",
+        "description": "**Optional and experimental.** Enter the charger's private IPv4 address (10.x / 172.16–31.x / 192.168.x). Enable the local HTTP API v2 in the go-e app. No cloud, authentication, phase switching or direct device discovery is implemented.\n\n**IMPORTANT:** evcc and all other controllers must stop writing to this wallbox **before V15 go-e live control is enabled**. Checking the acknowledgment does not technically stop evcc. The go-e controller is OFF after each HA restart/entry reload. Charging current and V15 pauses are not automatically reset after shutdown.",
+        "data": {
+          "goe_local_ipv4": "Local go-e IPv4 address (no URL, port or path)",
+          "goe_other_regulators_disabled": "I confirm evcc and other wallbox regulators are disabled for this charger",
+          "goe_installed_phases": "Conservative phase count: 3 (required in this pilot)",
+          "goe_min_current_a": "Minimum charging current (A)",
+          "goe_max_current_a": "Maximum charging current (A)",
+          "goe_margin_w": "Additional go-e safety margin (W)",
+          "goe_stable_seconds": "Stable reserve required before increase/resume (s)",
+          "goe_step_seconds": "Minimum time between go-e adjustments (s)",
+          "goe_allow_pause": "Allow V15-owned charging pause (frc=1)"
+        },
+        "data_description": {
+          "goe_local_ipv4": "A private LAN IPv4 address, e.g. 192.168.1.50. HTTP API v2 must be enabled in the charger. API HTTP authentication is not supported in this pilot.",
+          "goe_other_regulators_disabled": "This is a manual safety confirmation, not an automatic lock. Disable evcc, go-e app schedules and any other system writing go-e amp/frc before enabling V15 live control.",
+          "goe_installed_phases": "Beta 6 only supports a 3-phase limit. A three-phase-capable wallbox must be treated as 3-phase even if it is currently charging on one phase. V15 never switches phases.",
+          "goe_min_current_a": "Usually 6 A. Lower currents are not supported.",
+          "goe_max_current_a": "Never exceed the charger/cable/circuit rating. V15 will not increase above the value present when V15 live control was activated.",
+          "goe_margin_w": "Extra safety margin beyond V15's normal demand reserve.",
+          "goe_stable_seconds": "The extra power must be available continuously before increasing or resuming charging.",
+          "goe_step_seconds": "At least 30 seconds between go-e writes; each command requires confirmed device feedback.",
+          "goe_allow_pause": "When enabled V15 may set forceState Off (frc=1), then only release its own pause to Neutral (frc=0). It NEVER uses Force On (frc=2)."
+        }
       }
     },
     "error": {
       "reserve_too_high": "The safety reserve must be lower than the threshold.",
       "restore_requires_loads": "Select at least one load switch to enable automatic restoration.",
       "evcc_current_limits": "Minimum charging current must not exceed the maximum.",
-      "evcc_separate_entities": "Charging mode and maximum current must be different entities."
+      "evcc_separate_entities": "Charging mode and maximum current must be different entities.",
+      "charger_conflict": "Choose only one charging backend: evcc OR direct go-e.",
+      "goe_local_address": "Enter a local private RFC1918 IPv4 address without URL or port.",
+      "goe_current_limits": "The minimum charging current must not exceed the maximum."
     }
   }
 }

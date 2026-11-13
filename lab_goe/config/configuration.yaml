@@ -1,0 +1,52 @@
+# Disposable Home Assistant lab, never a production configuration.
+homeassistant:
+  name: V15 go-e Testlabor
+  time_zone: Europe/Vienna
+  unit_system: metric
+
+http:
+frontend:
+config:
+logger:
+  default: warning
+  logs:
+    custom_components.v15_lastmanagement: info
+
+input_number:
+  v15_goe_grundlast_w:
+    name: V15 Test go-e Grundlast (W), negativ = PV-Überschuss
+    min: -12000
+    max: 16000
+    step: 100
+    mode: box
+    initial: -6000
+
+rest:
+  - resource: "http://172.28.201.10/api/status?filter=amp,frc,nrg,pnp"
+    scan_interval: 5
+    sensor:
+      - name: V15 Labor go-e API Leistung
+        unique_id: v15_lab_goe_api_power
+        unit_of_measurement: W
+        device_class: power
+        value_template: "{{ value_json.nrg[11] }}"
+
+template:
+  - sensor:
+      - name: V15 Test go-e Ladeleistung
+        unique_id: v15_lab_goe_charge_power
+        unit_of_measurement: W
+        device_class: power
+        attributes:
+          # Keep HA last_updated fresh even with constant synthetic readings.
+          test_heartbeat: "{{ now().isoformat() }}"
+        state: "{{ states('sensor.v15_labor_go_e_api_leistung') | float(0) | round(0) }}"
+      - name: V15 Test go-e Netzleistung
+        unique_id: v15_lab_goe_grid_power
+        unit_of_measurement: W
+        device_class: power
+        attributes:
+          test_heartbeat: "{{ now().isoformat() }}"
+        state: >-
+          {{ (states('input_number.v15_goe_grundlast_w') | float(0)
+              + states('sensor.v15_test_goe_ladeleistung') | float(0)) | round(0) }}

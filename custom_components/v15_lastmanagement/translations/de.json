@@ -16,7 +16,8 @@
           "restore_stable_seconds": "Erforderliche Dauer mit ausreichender Leistungsreserve (Sekunden)",
           "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
           "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
-          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten"
+          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten",
+          "goe_configured": "Optionale direkte go-e-Wallboxsteuerung einrichten (Alternative zu evcc)"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -29,7 +30,8 @@
           "restore_stable_seconds": "Die verfügbare Reserve muss so lange ohne Unterbrechung ausreichen, bevor V15 einen Verbraucher wieder einschalten darf.",
           "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
           "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
-          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden."
+          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden.",
+          "goe_configured": "Verwendet die lokale HTTP-API v2 des go-e Chargers, nicht die evcc-Entitäten. **Entweder evcc oder go-e** auswählen, niemals beide. Experimenteller Pilot mit gesonderter Freigabe."
         }
       },
       "restore": {
@@ -67,13 +69,42 @@
           "evcc_step_seconds": "Mindestens 30 Sekunden. Nach jeder Änderung wird auf die Rückmeldung der evcc-Entität gewartet.",
           "evcc_allow_pause": "Wenn selbst die Mindestladeleistung das Budget übersteigt, darf V15 den Lademodus smart auf off setzen. Nur V15-eigene Pausen dürfen automatisch freigegeben werden. Bei Neustart oder Deaktivierung kann off bestehen bleiben."
         }
+      },
+      "goe": {
+        "title": "Direkten go-e Charger einrichten (lokale HTTP-API v2)",
+        "description": "**Optional und experimentell.** Trage die private IPv4-Adresse des Chargers ein (10.x / 172.16–31.x / 192.168.x). Die lokale HTTP-API v2 muss in der go-e-App aktiviert sein. Keine Cloud, Authentifizierung, Phasenumschaltung oder automatische Gerätesuche.\n\n**WICHTIG:** evcc und alle anderen Regler müssen diese Wallbox nicht mehr steuern, **bevor die go-e-Livesteuerung in V15 aktiviert wird**. Die Bestätigung deaktiviert evcc nicht technisch. Nach einem HA-Neustart oder Neuladen bleibt die go-e-Steuerung ausgeschaltet. Stromlimits und Ladepausen werden danach nicht automatisch zurückgesetzt.",
+        "data": {
+          "goe_local_ipv4": "Lokale IPv4-Adresse des go-e Chargers (ohne URL oder Port)",
+          "goe_other_regulators_disabled": "Ich bestätige: evcc und andere Wallbox-Regler sind für diesen Charger deaktiviert",
+          "goe_installed_phases": "Konservative Phasenzahl: 3 (im Pilot verbindlich)",
+          "goe_min_current_a": "Minimaler Ladestrom (A)",
+          "goe_max_current_a": "Maximaler Ladestrom (A)",
+          "goe_margin_w": "Zusätzlicher go-e-Sicherheitspuffer (W)",
+          "goe_stable_seconds": "Stabile Reserve vor Erhöhung/Wiederaufnahme (s)",
+          "goe_step_seconds": "Mindestabstand zwischen go-e-Stellbefehlen (s)",
+          "goe_allow_pause": "Von V15 verwaltete Ladepause zulassen (frc=1)"
+        },
+        "data_description": {
+          "goe_local_ipv4": "Private LAN-Adresse, z. B. 192.168.1.50. Die HTTP-API v2 muss am Charger aktiviert sein. HTTP-Authentifizierung wird im Pilot nicht unterstützt.",
+          "goe_other_regulators_disabled": "Dies ist eine manuelle Sicherheitsbestätigung, keine technische Sperre. evcc, Ladepläne der go-e-App und andere Regler für amp/frc vorher deaktivieren.",
+          "goe_installed_phases": "Beta 6 unterstützt derzeit nur drei Phasen. Bei einer dreiphasig möglichen Wallbox muss auch während einphasiger Ladung mit 3 Phasen gerechnet werden. V15 schaltet keine Phasen um.",
+          "goe_min_current_a": "Üblicherweise 6 A. Kleinere Ladestromstärken werden nicht unterstützt.",
+          "goe_max_current_a": "Niemals über dem zulässigen Wert von Charger, Kabel und Installation. V15 erhöht nicht über den Strom beim Einschalten der Livesteuerung.",
+          "goe_margin_w": "Zusätzlicher Puffer über die normale Sicherheitsreserve von V15 hinaus.",
+          "goe_stable_seconds": "Die Reserve muss durchgehend bestehen, bevor V15 den Ladestrom erhöht oder die Pause beendet.",
+          "goe_step_seconds": "Mindestens 30 Sekunden zwischen go-e-Befehlen, mit Prüfung der Geräte-Rückmeldung.",
+          "goe_allow_pause": "V15 darf mit forceState Off (frc=1) pausieren und ausschließlich die eigene Pause auf Neutral (frc=0) zurücksetzen. Force On (frc=2) wird niemals verwendet."
+        }
       }
     },
     "error": {
       "reserve_too_high": "Die Sicherheitsreserve muss kleiner als der Grenzwert sein.",
       "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren.",
       "evcc_current_limits": "Der minimale Ladestrom darf nicht größer als der maximale sein.",
-      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein."
+      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein.",
+      "charger_conflict": "Bitte nur eine Wallbox-Anbindung wählen: evcc ODER direkt go-e.",
+      "goe_local_address": "Bitte eine private lokale RFC1918-IPv4-Adresse ohne URL oder Port eingeben.",
+      "goe_current_limits": "Der Mindestladestrom darf nicht höher als der Maximalstrom sein."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement ist bereits eingerichtet."
@@ -95,7 +126,8 @@
           "restore_stable_seconds": "Erforderliche Dauer mit ausreichender Leistungsreserve (Sekunden)",
           "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
           "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
-          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten"
+          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten",
+          "goe_configured": "Optionale direkte go-e-Wallboxsteuerung einrichten (Alternative zu evcc)"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -108,7 +140,8 @@
           "restore_stable_seconds": "Die verfügbare Reserve muss so lange ohne Unterbrechung ausreichen, bevor V15 einen Verbraucher wieder einschalten darf.",
           "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
           "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
-          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden."
+          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden.",
+          "goe_configured": "Verwendet die lokale HTTP-API v2 des go-e Chargers, nicht die evcc-Entitäten. **Entweder evcc oder go-e** auswählen, niemals beide. Experimenteller Pilot mit gesonderter Freigabe."
         }
       },
       "restore": {
@@ -146,13 +179,42 @@
           "evcc_step_seconds": "Mindestens 30 Sekunden. Nach jeder Änderung wird auf die Rückmeldung der evcc-Entität gewartet.",
           "evcc_allow_pause": "Wenn selbst die Mindestladeleistung das Budget übersteigt, darf V15 den Lademodus smart auf off setzen. Nur V15-eigene Pausen dürfen automatisch freigegeben werden. Bei Neustart oder Deaktivierung kann off bestehen bleiben."
         }
+      },
+      "goe": {
+        "title": "Direkten go-e Charger einrichten (lokale HTTP-API v2)",
+        "description": "**Optional und experimentell.** Trage die private IPv4-Adresse des Chargers ein (10.x / 172.16–31.x / 192.168.x). Die lokale HTTP-API v2 muss in der go-e-App aktiviert sein. Keine Cloud, Authentifizierung, Phasenumschaltung oder automatische Gerätesuche.\n\n**WICHTIG:** evcc und alle anderen Regler müssen diese Wallbox nicht mehr steuern, **bevor die go-e-Livesteuerung in V15 aktiviert wird**. Die Bestätigung deaktiviert evcc nicht technisch. Nach einem HA-Neustart oder Neuladen bleibt die go-e-Steuerung ausgeschaltet. Stromlimits und Ladepausen werden danach nicht automatisch zurückgesetzt.",
+        "data": {
+          "goe_local_ipv4": "Lokale IPv4-Adresse des go-e Chargers (ohne URL oder Port)",
+          "goe_other_regulators_disabled": "Ich bestätige: evcc und andere Wallbox-Regler sind für diesen Charger deaktiviert",
+          "goe_installed_phases": "Konservative Phasenzahl: 3 (im Pilot verbindlich)",
+          "goe_min_current_a": "Minimaler Ladestrom (A)",
+          "goe_max_current_a": "Maximaler Ladestrom (A)",
+          "goe_margin_w": "Zusätzlicher go-e-Sicherheitspuffer (W)",
+          "goe_stable_seconds": "Stabile Reserve vor Erhöhung/Wiederaufnahme (s)",
+          "goe_step_seconds": "Mindestabstand zwischen go-e-Stellbefehlen (s)",
+          "goe_allow_pause": "Von V15 verwaltete Ladepause zulassen (frc=1)"
+        },
+        "data_description": {
+          "goe_local_ipv4": "Private LAN-Adresse, z. B. 192.168.1.50. Die HTTP-API v2 muss am Charger aktiviert sein. HTTP-Authentifizierung wird im Pilot nicht unterstützt.",
+          "goe_other_regulators_disabled": "Dies ist eine manuelle Sicherheitsbestätigung, keine technische Sperre. evcc, Ladepläne der go-e-App und andere Regler für amp/frc vorher deaktivieren.",
+          "goe_installed_phases": "Beta 6 unterstützt derzeit nur drei Phasen. Bei einer dreiphasig möglichen Wallbox muss auch während einphasiger Ladung mit 3 Phasen gerechnet werden. V15 schaltet keine Phasen um.",
+          "goe_min_current_a": "Üblicherweise 6 A. Kleinere Ladestromstärken werden nicht unterstützt.",
+          "goe_max_current_a": "Niemals über dem zulässigen Wert von Charger, Kabel und Installation. V15 erhöht nicht über den Strom beim Einschalten der Livesteuerung.",
+          "goe_margin_w": "Zusätzlicher Puffer über die normale Sicherheitsreserve von V15 hinaus.",
+          "goe_stable_seconds": "Die Reserve muss durchgehend bestehen, bevor V15 den Ladestrom erhöht oder die Pause beendet.",
+          "goe_step_seconds": "Mindestens 30 Sekunden zwischen go-e-Befehlen, mit Prüfung der Geräte-Rückmeldung.",
+          "goe_allow_pause": "V15 darf mit forceState Off (frc=1) pausieren und ausschließlich die eigene Pause auf Neutral (frc=0) zurücksetzen. Force On (frc=2) wird niemals verwendet."
+        }
       }
     },
     "error": {
       "reserve_too_high": "Die Sicherheitsreserve muss kleiner als der Grenzwert sein.",
       "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren.",
       "evcc_current_limits": "Der minimale Ladestrom darf nicht größer als der maximale sein.",
-      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein."
+      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein.",
+      "charger_conflict": "Bitte nur eine Wallbox-Anbindung wählen: evcc ODER direkt go-e.",
+      "goe_local_address": "Bitte eine private lokale RFC1918-IPv4-Adresse ohne URL oder Port eingeben.",
+      "goe_current_limits": "Der Mindestladestrom darf nicht höher als der Maximalstrom sein."
     }
   }
 }
