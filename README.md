@@ -2,9 +2,9 @@
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 
-**Entwicklungsversion 0.3.5b6 (noch nicht veröffentlicht). Keine zertifizierte Begrenzung abrechnungsrelevanter Lastspitzen.**
+**Entwicklungsversion 0.3.6b1 (noch nicht veröffentlicht). Keine zertifizierte Begrenzung abrechnungsrelevanter Lastspitzen.**
 
-V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt die voraussichtliche Viertelstundenleistung und kann bei drohender Überschreitung ausgewählte **unkritische** Home-Assistant-Schalter abschalten. Ab Beta 3 ist eine **optionale automatische Wiedereinschaltung** möglich.
+V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt die voraussichtliche Viertelstundenleistung und kann bei drohender Überschreitung ausgewählte **unkritische** Home-Assistant-Schalter abschalten. Eine **optionale automatische Wiedereinschaltung** ist enthalten.
 
 ## Funktionen
 
@@ -25,14 +25,18 @@ V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt di
 **Voraussetzung:** Home Assistant 2026.11 oder neuer. V15 ist noch nicht im allgemeinen Marketplace-Katalog gelistet und wird daher als benutzerdefiniertes Repository hinzugefügt.
 
 1. [V15 Lastmanagement im Marketplace öffnen](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration). Alternativ unter **Einstellungen → Marketplace → Add from link** das Repository `https://github.com/SchreiterC/ha-v15-lastmanagement` hinzufügen. Für benutzerdefinierte Repositories ist eine GitHub-Verbindung im Marketplace erforderlich.
-2. **Beta-Version aktivieren:** Da derzeit ausschließlich Vorabversionen veröffentlicht sind, unter **Einstellungen → Geräte & Dienste → Marketplace** beim Repository **V15 Lastmanagement** die zunächst deaktivierte Entität **Pre-release** aktivieren und den Schalter einschalten.
-3. **V15 Lastmanagement** im Marketplace installieren bzw. auf eine neue Version aktualisieren.
+2. **Reguläre Version wählen:** Version **0.3.5** installieren. Die Option **Pre-release** ist dafür **nicht erforderlich**. Wer nur reguläre Releases verwenden möchte, lässt die Pre-release-Option ausgeschaltet.
+3. **V15 Lastmanagement** im Marketplace installieren bzw. auf **0.3.5** aktualisieren.
 4. Home Assistant vollständig neu starten.
 5. Bei Neuinstallation V15 unter **Einstellungen → Geräte & Dienste** einrichten. Bestehende Installationen **nicht löschen**. Die 13 bisherigen Entitäten behalten ihre Identität, zusätzlich erscheint „V15 Verwaltete Abschaltungen“.
 6. Bei einem Upgrade von Beta 2: **V15 → Konfigurieren/Optionen** öffnen, um die neuen Wiedereinschaltoptionen zu setzen. Standardmäßig bleibt die Wiedereinschaltung deaktiviert.
 
 Bereits mit HACS installierte Integrationen werden beim Umstieg auf Home Assistant 2026.11 automatisch in den Marketplace übernommen. V15 muss dafür nicht neu installiert werden.
 <!-- ha-marketplace:exclude-end -->
+
+## Status der Funktionen
+
+Die Viertelstundenberechnung, priorisierte Lastabschaltung, optionale Rückschaltung, Simulation und Diagnose bilden die regulär veröffentlichte Kernfunktion. Die **evcc-Steuerung bleibt eine separat einzurichtende, ausdrücklich zu aktivierende experimentelle Funktion**. Für diese Erweiterung stehen Hardware- und Langzeittests noch aus. V15 ersetzt keinen geeichten Netz-/Leistungszähler und garantiert nicht, dass eine vertragliche Viertelstunden-Grenze eingehalten wird.
 
 ## Sprache und Erklärung im Einrichtungsdialog
 
@@ -66,9 +70,9 @@ Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerung
 **Wichtige Einschränkung bei Neustart, Update und Konfigurationsänderung:** V15 vergisst die in diesem Lauf selbst abgeschalteten Verbraucher bewusst beim Neuladen der Integration und lässt sie ausgeschaltet. Sie werden nicht nachträglich automatisch eingeschaltet. Das verhindert eine unkontrollierte Wiedereinschaltung nach Neustarts. Prüfe sie dann manuell. Auch das Deaktivieren der aktiven Laststeuerung schaltet bereits ausgeschaltete Geräte **nicht** sofort wieder ein.
 
 
-## Neu in Beta 5: Optionale evcc-Ladestrombegrenzung
+## Experimentell: optionale evcc-Ladestrombegrenzung
 
-**Wichtig: Die evcc-Funktion ist ein gesonderter Pilot. Sie wurde mit virtuellen Wallbox-Entitäten in Home Assistant getestet, jedoch noch nicht an einer echten Wallbox.** Die bestehende Lastabschaltung und -rückschaltung bleiben unverändert. Keine evcc-Steuerung wird automatisch eingeschaltet.
+**Wichtig: Die evcc-Funktion bleibt auch nach dem regulären Release 0.3.5 experimentell.** Sie wurde mit virtuellen Wallbox-Entitäten in Home Assistant getestet, **nicht mit echter evcc-/Wallbox-/Fahrzeughardware**. Die Regelfunktionen der go-e-Entwicklungsversion 0.3.6b1 sind ebenfalls **nicht für einen ungeprüften produktiven Einsatz freigegeben**. Die Lastabschaltung und -rückschaltung bleiben unverändert. Die evcc-Steuerung wird nicht automatisch eingeschaltet.
 
 ### Voraussetzungen
 
@@ -101,7 +105,7 @@ Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerung
 - Die Berechnung mit 230 V pro Phase ist eine Näherung. Leistungsbegrenzungen sind nicht abrechnungsgenau garantiert.
 - Die aktive evcc-Steuerung darf wegen der noch ausstehenden Hardwaretests **nicht ungeprüft in einer produktiven Anlage** eingeschaltet werden.
 
-## In Entwicklung: Beta 6 – direkte go-e-Charger-Anbindung
+## In Entwicklung: 0.3.6b1 – direkte go-e-Charger-Anbindung
 
 **Nur Entwicklungszweig `dev/goe-beta6`. Nicht als neue öffentliche Version freigegeben und nicht für den ungeprüften produktiven Betrieb vorgesehen.** Die bisherige evcc-Anbindung aus Beta 5 bleibt erhalten.
 
@@ -114,7 +118,7 @@ In der V15-Konfiguration ist **nur eine der beiden Anbindungen auswählbar**. Di
 
 ### Technische Voraussetzungen und Grenzen
 
-1. go-e Charger mit **lokaler HTTP-API v2** (z. B. Gemini flex) im selben lokalen Netz. Die API in der go-e-App aktivieren. Der Beta-6-Prototyp unterstützt nur eine private IPv4-Adresse aus 10/8, 172.16/12 oder 192.168/16, keine Cloud-API, keinen Portwechsel und keine HTTP-Authentifizierung.
+1. go-e Charger mit **lokaler HTTP-API v2** (z. B. Gemini flex) im selben lokalen Netz. Die API in der go-e-App aktivieren. Der 0.3.6b1-Prototyp unterstützt nur eine private IPv4-Adresse aus 10/8, 172.16/12 oder 192.168/16, keine Cloud-API, keinen Portwechsel und keine HTTP-Authentifizierung.
 2. **evcc und alle anderen Systeme, die denselben Charger steuern, ausdrücklich deaktivieren.** Das Häkchen im V15-Dialog ist lediglich die Bestätigung durch den Benutzer, keine technische Sperre von evcc. Das gilt auch für konkurrierende go-e-Ladepläne.
 3. go-e 11 kW als Ausgangswert: **3 Phasen, 6–16 A**, 230 V je Phase, zusätzlicher Puffer 300 W, stabile Reserve 90 s und Änderungsabstand mindestens 30 s. Drei Phasen konfigurieren, wenn die Wallbox grundsätzlich dreiphasig laden kann. V15 schaltet keine Phasen um.
 4. Die API liefert `amp` (Sollstrom), `frc` (0 = Neutral, 1 = Aus, 2 = erzwungen Ein), `nrg[11]` (gemessene Gesamtleistung in W) sowie `pnp` (Phasenzahl). V15 schreibt **ausschließlich** `amp` und bei ausdrücklich aktivierter Ladepause `frc=1`. Nach einer V15-eigenen Pause wird nur `frc=0` (Neutral) wiederhergestellt, niemals `frc=2` (erzwungen Ein).
