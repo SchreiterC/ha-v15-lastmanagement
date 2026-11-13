@@ -2,9 +2,9 @@
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 
-**Beta-Testversion 0.3.5b5. Keine zertifizierte Begrenzung abrechnungsrelevanter Lastspitzen.**
+**Reguläres Release 0.3.5. Keine zertifizierte oder garantierte Begrenzung abrechnungsrelevanter Lastspitzen.**
 
-V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt die voraussichtliche Viertelstundenleistung und kann bei drohender Überschreitung ausgewählte **unkritische** Home-Assistant-Schalter abschalten. Ab Beta 3 ist eine **optionale automatische Wiedereinschaltung** möglich.
+V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt die voraussichtliche Viertelstundenleistung und kann bei drohender Überschreitung ausgewählte **unkritische** Home-Assistant-Schalter abschalten. Eine **optionale automatische Wiedereinschaltung** ist enthalten.
 
 ## Funktionen
 
@@ -12,7 +12,7 @@ V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt di
 - 15-Minuten-Durchschnitt, Prognose, Verbrauch, Messabdeckung und konservatives Restbudget.
 - Individuell konfigurierbare Leistungsgrenze und Reserve.
 - Priorisierte Abschaltung mehrerer `switch`-Entitäten.
-- **Neu:** Wiedereinschalten in umgekehrter Abschaltreihenfolge, wenn die Reserve nachweisbar ausreicht.
+- Optionales Wiedereinschalten in umgekehrter Abschaltreihenfolge, wenn die Reserve nachweisbar ausreicht.
 - Simulation mit echten Messwerten ohne Schaltung und Demo mit künstlichen Messwerten.
 - Diagnose mit verwalteten Abschaltungen, Rückschaltkandidat und Wartegrund.
 - Ohne evcc: bisherige 14 Entitäten. Mit evcc: zwei zusätzliche Entitäten (evcc-Regelschalter und Zielstromsensor). Die bisherigen `unique_id`s bleiben unverändert.
@@ -25,14 +25,18 @@ V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt di
 **Voraussetzung:** Home Assistant 2026.11 oder neuer. V15 ist noch nicht im allgemeinen Marketplace-Katalog gelistet und wird daher als benutzerdefiniertes Repository hinzugefügt.
 
 1. [V15 Lastmanagement im Marketplace öffnen](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration). Alternativ unter **Einstellungen → Marketplace → Add from link** das Repository `https://github.com/SchreiterC/ha-v15-lastmanagement` hinzufügen. Für benutzerdefinierte Repositories ist eine GitHub-Verbindung im Marketplace erforderlich.
-2. **Beta-Version aktivieren:** Da derzeit ausschließlich Vorabversionen veröffentlicht sind, unter **Einstellungen → Geräte & Dienste → Marketplace** beim Repository **V15 Lastmanagement** die zunächst deaktivierte Entität **Pre-release** aktivieren und den Schalter einschalten.
-3. **V15 Lastmanagement** im Marketplace installieren bzw. auf eine neue Version aktualisieren.
+2. **Reguläre Version wählen:** Version **0.3.5** installieren. Die Option **Pre-release** ist dafür **nicht erforderlich**. Wer nur reguläre Releases verwenden möchte, lässt die Pre-release-Option ausgeschaltet.
+3. **V15 Lastmanagement** im Marketplace installieren bzw. auf **0.3.5** aktualisieren.
 4. Home Assistant vollständig neu starten.
 5. Bei Neuinstallation V15 unter **Einstellungen → Geräte & Dienste** einrichten. Bestehende Installationen **nicht löschen**. Die 13 bisherigen Entitäten behalten ihre Identität, zusätzlich erscheint „V15 Verwaltete Abschaltungen“.
 6. Bei einem Upgrade von Beta 2: **V15 → Konfigurieren/Optionen** öffnen, um die neuen Wiedereinschaltoptionen zu setzen. Standardmäßig bleibt die Wiedereinschaltung deaktiviert.
 
 Bereits mit HACS installierte Integrationen werden beim Umstieg auf Home Assistant 2026.11 automatisch in den Marketplace übernommen. V15 muss dafür nicht neu installiert werden.
 <!-- ha-marketplace:exclude-end -->
+
+## Status der Funktionen
+
+Die Viertelstundenberechnung, priorisierte Lastabschaltung, optionale Rückschaltung, Simulation und Diagnose bilden die regulär veröffentlichte Kernfunktion. Die **evcc-Steuerung bleibt eine separat einzurichtende, ausdrücklich zu aktivierende experimentelle Funktion**. Für diese Erweiterung stehen Hardware- und Langzeittests noch aus. V15 ersetzt keinen geeichten Netz-/Leistungszähler und garantiert nicht, dass eine vertragliche Viertelstunden-Grenze eingehalten wird.
 
 ## Sprache und Erklärung im Einrichtungsdialog
 
@@ -66,9 +70,9 @@ Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerung
 **Wichtige Einschränkung bei Neustart, Update und Konfigurationsänderung:** V15 vergisst die in diesem Lauf selbst abgeschalteten Verbraucher bewusst beim Neuladen der Integration und lässt sie ausgeschaltet. Sie werden nicht nachträglich automatisch eingeschaltet. Das verhindert eine unkontrollierte Wiedereinschaltung nach Neustarts. Prüfe sie dann manuell. Auch das Deaktivieren der aktiven Laststeuerung schaltet bereits ausgeschaltete Geräte **nicht** sofort wieder ein.
 
 
-## Neu in Beta 5: Optionale evcc-Ladestrombegrenzung
+## Experimentell: optionale evcc-Ladestrombegrenzung
 
-**Wichtig: Die evcc-Funktion ist ein gesonderter Pilot. Sie wurde mit virtuellen Wallbox-Entitäten in Home Assistant getestet, jedoch noch nicht an einer echten Wallbox.** Die bestehende Lastabschaltung und -rückschaltung bleiben unverändert. Keine evcc-Steuerung wird automatisch eingeschaltet.
+**Wichtig: Die evcc-Funktion bleibt auch im regulären Release 0.3.5 experimentell.** Sie wurde mit virtuellen Wallbox-Entitäten in Home Assistant getestet, **noch nicht mit echtem evcc, echter Wallbox oder Fahrzeug**. Ein reguläres Release bedeutet **keine Freigabe dieser Pilotfunktion für den ungeprüften produktiven Betrieb**. Die bestehende Lastabschaltung und -rückschaltung bleiben unverändert. Die evcc-Steuerung wird nicht automatisch eingeschaltet.
 
 ### Voraussetzungen
 
