@@ -4,12 +4,7 @@ on:
   push:
     branches:
       - dev/evcc-simulator
-  pull_request:
-    paths:
-      - custom_components/v15_lastmanagement/**
-      - qa_ha/**
-      - pytest.ini
-      - .github/workflows/ha-runtime-tests.yml
+  pull_request: {}
   workflow_dispatch:
 
 permissions:
