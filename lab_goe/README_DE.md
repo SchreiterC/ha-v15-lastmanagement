@@ -1,8 +1,8 @@
-# V15 Beta 6: virtuelles go-e-Docker-Testlabor
+# V15 0.3.6b1: virtuelles go-e-Docker-Testlabor
 
 Dieses Labor startet **zwei getrennte Container**: Home Assistant 2026.11 auf `http://127.0.0.1:8125` und eine vollständig **virtuelle** lokale go-e-HTTP-API v2 auf `http://127.0.0.1:8126`. Es gibt weder eine Verbindung zum echten go-e Charger noch zu evcc oder Victron.
 
-**Entwicklungsstand, keine veröffentlichte Beta 6.** Das reale V15-Modul wird gegen einen simulierten Charger getestet. Wie bei Beta 5 sind dessen Antwortzeiten und Fehlerfälle nicht identisch mit realer Hardware.
+**Entwicklungsstand 0.3.6b1, nicht veröffentlicht.** Das reale V15-Modul wird gegen einen simulierten Charger getestet. Wie bei Beta 5 sind dessen Antwortzeiten und Fehlerfälle nicht identisch mit realer Hardware.
 
 ## Einrichtung unter Windows mit Docker Desktop
 
