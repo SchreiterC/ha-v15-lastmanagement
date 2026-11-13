@@ -1,5 +1,15 @@
 # Versionshistorie
 
+## 0.3.5 – Erstes reguläres Release (2026-11-13)
+
+- Erste reguläre, nicht als Prerelease gekennzeichnete Veröffentlichung von V15 Lastmanagement. Version 0.3.5 basiert funktional auf Beta 5 (`0.3.5b5`).
+- **Regulärer Funktionsumfang:** Überwachung fester 15-Minuten-Zeitfenster, Netzbezug und Leistungsprognose, konservatives Restbudget, priorisierte Abschaltung konfigurierter unkritischer Verbraucher, optionale sichere Wiedereinschaltung selbst abgeschalteter Verbraucher, Diagnose und Probelauf.
+- **Experimentell, weiterhin nur als Pilot:** optionale evcc-Ladestromsteuerung samt Ladepause und Wiederaufnahme. Separat einzurichten und ausdrücklich zu aktivieren. Bislang mit virtuellen Home-Assistant-/evcc-Entitäten, **nicht mit realer evcc-/Wallbox-/Fahrzeughardware** getestet. Keine Freigabe für ungeprüften produktiven Betrieb.
+- Für die bisherige Beta 5: 63 Logiktests und 14 Home-Assistant-Integrationstests sowie acht virtuelle Docker-Praxisszenarien erfolgreich. Die Release-Prüfungen werden für 0.3.5 erneut ausgeführt.
+- Installations- und Updatehinweise für den **Home Assistant Marketplace** aktualisiert. Für 0.3.5 ist keine Aktivierung der Pre-release-Option notwendig.
+- Bestehende Konfigurationen und Entitätskennungen bleiben erhalten. Keine automatischen Last- oder evcc-Steuerfreigaben nach Neustart/Reload.
+- **Sicherheitsgrenze:** V15 ist keine geeichte oder garantierte Viertelstunden-Spitzenleistungsbegrenzung. Vorsicht bei Messwertqualität, Netzverzögerungen, Konfigurationsfehlern und kritischen Lasten.
+
 ## 0.3.5b5 – Beta 5: optionale evcc-Ladestromsteuerung (2026-11-12)
 
 - **Neu:** Optionale Anbindung an die bestehenden evcc-Entitäten von Home Assistant mit separatem Einrichtungsdialog, eigener ausdrücklicher Steuerfreigabe und Zielstromsensor.
