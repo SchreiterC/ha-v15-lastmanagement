@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "V15 Lastmanagement einrichten",
-        "description": "Wähle den Netzleistungssensor und die Verbraucher für die Laststeuerung. Mit der Option zur automatischen Wiedereinschaltung darf V15 nur Schalter zurückschalten, die V15 zuvor selbst abgeschaltet hat. **Die aktive Laststeuerung ist nach jedem Neustart ausgeschaltet.**",
+        "description": "Wähle den Netzleistungssensor und die Verbraucher für die Laststeuerung. Mit der Option zur automatischen Wiedereinschaltung darf V15 nur Schalter zurückschalten, die V15 zuvor selbst abgeschaltet hat. **Die aktive Laststeuerung ist nach jedem Neustart ausgeschaltet.**\n\n**Home Connect ist experimentell und benötigt ausdrücklich aktivierte Wiedereinschaltung.**",
         "data": {
           "grid_sensor": "Netzleistungssensor",
           "limit_kw": "Grenzwert für den 15-Minuten-Durchschnitt (kW)",
@@ -16,7 +16,8 @@
           "restore_stable_seconds": "Erforderliche Dauer mit ausreichender Leistungsreserve (Sekunden)",
           "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
           "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
-          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten"
+          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten",
+          "home_connect_pause_buttons": "Home-Connect-Pause-Taster (experimentell)"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -29,12 +30,13 @@
           "restore_stable_seconds": "Die verfügbare Reserve muss so lange ohne Unterbrechung ausreichen, bevor V15 einen Verbraucher wieder einschalten darf.",
           "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
           "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
-          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden."
+          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden.",
+          "home_connect_pause_buttons": "Nur geeignete unkritische Programme mit PauseProgram auswählen. Die Rückschaltung benötigt ResumeProgram und bestätigten Betriebszustand. Cloud-bedingte Verzögerungen möglich."
         }
       },
       "restore": {
         "title": "Geschätzte Leistungsaufnahme der Verbraucher (W)",
-        "description": "**Wozu dienen diese Werte?** V15 prüft vor dem automatischen Wiedereinschalten, ob die erwartete Geräteleistung **plus zusätzlichem Puffer** noch in das verfügbare Leistungsbudget passt.\n\n**Bitte für jeden Schalter die konservativ geschätzte maximale Leistungsaufnahme in Watt eingeben**, möglichst einschließlich einer möglichen Einschaltspitze. Kein Durchschnittsverbrauch und **keine kW**. Beispiel: Für ein Gerät mit maximal 600 W trägst Du `600` ein. Zu niedrige Angaben können zu einer Grenzwertüberschreitung führen.\n\n**Ausgewählte Schalter (in derselben Reihenfolge wie die Eingabefelder):**\n{switches}\n\nNur von V15 selbst abgeschaltete Schalter werden automatisch wieder eingeschaltet. Nach Neustart oder Konfigurationsänderung erfolgt keine nachträgliche Rückschaltung."
+        "description": "**Wozu dienen diese Werte?** V15 prüft vor dem automatischen Wiedereinschalten, ob die erwartete Geräteleistung **plus zusätzlichem Puffer** noch in das verfügbare Leistungsbudget passt.\n\n**Bitte für jeden Schalter die konservativ geschätzte maximale Leistungsaufnahme in Watt eingeben**, möglichst einschließlich einer möglichen Einschaltspitze. Kein Durchschnittsverbrauch und **keine kW**. Beispiel: Für ein Gerät mit maximal 600 W trägst Du `600` ein. Zu niedrige Angaben können zu einer Grenzwertüberschreitung führen.\n\n**Ausgewählte Schalter (in derselben Reihenfolge wie die Eingabefelder):**\n{switches}\n\nNur von V15 selbst abgeschaltete Schalter werden automatisch wieder eingeschaltet. Nach Neustart oder Konfigurationsänderung erfolgt keine nachträgliche Rückschaltung.\n\nFür Home-Connect-Pause-Taster die maximal zu erwartende Leistung beim Fortsetzen in Watt eintragen."
       },
       "evcc": {
         "title": "evcc-Wallbox einrichten",
@@ -73,7 +75,9 @@
       "reserve_too_high": "Die Sicherheitsreserve muss kleiner als der Grenzwert sein.",
       "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren.",
       "evcc_current_limits": "Der minimale Ladestrom darf nicht größer als der maximale sein.",
-      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein."
+      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein.",
+      "home_connect_requires_restore": "Home Connect erfordert die automatische Wiedereinschaltung.",
+      "home_connect_entity_invalid": "Ungültiger Home-Connect-Pause-Taster oder Betriebszustand fehlt."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement ist bereits eingerichtet."
@@ -83,7 +87,7 @@
     "step": {
       "init": {
         "title": "V15 Lastmanagement – Einstellungen",
-        "description": "Hier stellst Du die Abschalt- und Wiedereinschaltregeln ein. Die Wiedereinschaltung ist optional. Bei Aktivierung folgt eine zweite Seite zur **geschätzten maximalen Leistungsaufnahme in Watt** pro ausgewähltem Schalter. Eine Neukonfiguration setzt den bisherigen Rückschaltstatus zurück.",
+        "description": "Hier stellst Du die Abschalt- und Wiedereinschaltregeln ein. Die Wiedereinschaltung ist optional. Bei Aktivierung folgt eine zweite Seite zur **geschätzten maximalen Leistungsaufnahme in Watt** pro ausgewähltem Schalter. Eine Neukonfiguration setzt den bisherigen Rückschaltstatus zurück.\n\n**Home Connect ist experimentell und benötigt ausdrücklich aktivierte Wiedereinschaltung.**",
         "data": {
           "grid_sensor": "Netzleistungssensor",
           "limit_kw": "Grenzwert für den 15-Minuten-Durchschnitt (kW)",
@@ -95,7 +99,8 @@
           "restore_stable_seconds": "Erforderliche Dauer mit ausreichender Leistungsreserve (Sekunden)",
           "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
           "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
-          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten"
+          "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten",
+          "home_connect_pause_buttons": "Home-Connect-Pause-Taster (experimentell)"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -108,12 +113,13 @@
           "restore_stable_seconds": "Die verfügbare Reserve muss so lange ohne Unterbrechung ausreichen, bevor V15 einen Verbraucher wieder einschalten darf.",
           "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
           "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
-          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden."
+          "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden.",
+          "home_connect_pause_buttons": "Nur geeignete unkritische Programme mit PauseProgram auswählen. Die Rückschaltung benötigt ResumeProgram und bestätigten Betriebszustand. Cloud-bedingte Verzögerungen möglich."
         }
       },
       "restore": {
         "title": "Geschätzte Leistungsaufnahme der Verbraucher (W)",
-        "description": "**Wozu dienen diese Werte?** V15 prüft vor dem automatischen Wiedereinschalten, ob die erwartete Geräteleistung **plus zusätzlichem Puffer** noch in das verfügbare Leistungsbudget passt.\n\n**Bitte für jeden Schalter die konservativ geschätzte maximale Leistungsaufnahme in Watt eingeben**, möglichst einschließlich einer möglichen Einschaltspitze. Kein Durchschnittsverbrauch und **keine kW**. Beispiel: Für ein Gerät mit maximal 600 W trägst Du `600` ein. Zu niedrige Angaben können zu einer Grenzwertüberschreitung führen.\n\n**Ausgewählte Schalter (in derselben Reihenfolge wie die Eingabefelder):**\n{switches}\n\nNur von V15 selbst abgeschaltete Schalter werden automatisch wieder eingeschaltet. Nach Neustart oder Konfigurationsänderung erfolgt keine nachträgliche Rückschaltung."
+        "description": "**Wozu dienen diese Werte?** V15 prüft vor dem automatischen Wiedereinschalten, ob die erwartete Geräteleistung **plus zusätzlichem Puffer** noch in das verfügbare Leistungsbudget passt.\n\n**Bitte für jeden Schalter die konservativ geschätzte maximale Leistungsaufnahme in Watt eingeben**, möglichst einschließlich einer möglichen Einschaltspitze. Kein Durchschnittsverbrauch und **keine kW**. Beispiel: Für ein Gerät mit maximal 600 W trägst Du `600` ein. Zu niedrige Angaben können zu einer Grenzwertüberschreitung führen.\n\n**Ausgewählte Schalter (in derselben Reihenfolge wie die Eingabefelder):**\n{switches}\n\nNur von V15 selbst abgeschaltete Schalter werden automatisch wieder eingeschaltet. Nach Neustart oder Konfigurationsänderung erfolgt keine nachträgliche Rückschaltung.\n\nFür Home-Connect-Pause-Taster die maximal zu erwartende Leistung beim Fortsetzen in Watt eintragen."
       },
       "evcc": {
         "title": "evcc-Wallbox einrichten",
@@ -152,7 +158,9 @@
       "reserve_too_high": "Die Sicherheitsreserve muss kleiner als der Grenzwert sein.",
       "restore_requires_loads": "Wähle mindestens einen abschaltbaren Schalter, um die Wiedereinschaltung zu aktivieren.",
       "evcc_current_limits": "Der minimale Ladestrom darf nicht größer als der maximale sein.",
-      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein."
+      "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein.",
+      "home_connect_requires_restore": "Home Connect erfordert die automatische Wiedereinschaltung.",
+      "home_connect_entity_invalid": "Ungültiger Home-Connect-Pause-Taster oder Betriebszustand fehlt."
     }
   }
 }
