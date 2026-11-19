@@ -67,6 +67,8 @@ def validate_pause_buttons(hass, selected):
 
 
 def resolve_loads(hass, selected, powers):
+    if not selected:
+        return []
     registry = _registry(hass)
     loads = []
     for entity_id in dict.fromkeys(selected):
