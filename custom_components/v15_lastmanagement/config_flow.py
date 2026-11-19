@@ -187,7 +187,7 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(title="V15 Lastmanagement", data=self._pending_data)
             errors["base"] = error
-        return self.async_show_form(step_id="evcc", data_schema=evcc_schema(user_input, self.hass), errors=errors)
+        return self.async_show_form(step_id="evcc", data_schema=evcc_schema(user_input), errors=errors)
 
     @staticmethod
     def async_get_options_flow(config_entry):
