@@ -189,7 +189,7 @@ class V15HomeConnectController:
     def _eligible(self, now, watts, cal, trusted):
         if not self.m.config.get(CONF_RESTORE) or not self.m.enabled or self.m.simulation or self.m.demo_data:
             return None
-        if not trusted or watts is None or cal["at_risk"] or self.m.control_busy or self.busy:
+        if not trusted or watts is None or cal["at_risk"] or self.m.control_busy:
             return None
         if self.m.pending_off or self.m.pending_on or self.pending_pause or self.pending_resume:
             return None
