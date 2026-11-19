@@ -59,6 +59,7 @@ class TestHomeConnectControl(unittest.IsolatedAsyncioTestCase):
         m.hc_ready_name = PAUSE
         m.last_shed_time = clock.now - timedelta(seconds=200)
         self.hass.states[STATE] = FakeState("pause")
+        self.hass.states["sensor.grid"] = FakeState("100", {"unit_of_measurement": "W"})
 
     async def test_confirmed_pause_and_resume(self):
         await self.monitor.hc.async_pause(PAUSE)
