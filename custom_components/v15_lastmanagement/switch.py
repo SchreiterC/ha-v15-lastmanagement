@@ -31,8 +31,8 @@ class V15Control(V15BaseSwitch):
         return {"last_action": self.monitor.last_action, "configured_switches": self.monitor.load_entities}
     async def async_turn_on(self, **kwargs):
         # Deliberate user action required on every HA restart/reload.
-        if not self.monitor.load_entities:
-            raise ValueError("No load switches configured for live shedding")
+        if not self.monitor.load_entities and not self.monitor.hc.loads:
+            raise ValueError("No eligible switch or Home Connect device configured for live shedding")
         if self.monitor.demo_data:
             raise ValueError("Synthetic demo is active; disable demo data before live control")
         self.monitor.enabled = True

@@ -12,6 +12,7 @@ FIELDS = {
     "energy_kwh": ("V15 Netzbezug Viertelstunde", "kWh", "energy"),
     "coverage_percent": ("V15 Messabdeckung", "%", None),
     "managed_off_count": ("V15 Verwaltete Abschaltungen", None, None),
+    "managed_home_connect_pauses": ("V15 Verwaltete Home-Connect-Pausen", None, None),
 }
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -41,7 +42,7 @@ class V15Sensor(SensorEntity):
 
     @property
     def native_value(self):
-        if self.key not in ("coverage_percent", "managed_off_count") and not self.monitor.data.get("valid"):
+        if self.key not in ("coverage_percent", "managed_off_count", "managed_home_connect_pauses") and not self.monitor.data.get("valid"):
             return None
         return self.monitor.data.get(self.key)
 
@@ -79,6 +80,9 @@ class V15Explanation(SensorEntity):
                 "synthetic_demo_active": self.monitor.demo_data,
                 "automatic_restore_configured": self.monitor.auto_restore_enabled,
                 "managed_off_switches": list(self.monitor.managed_off),
+                "home_connect_status": self.monitor.hc.status,
+                "managed_home_connect_pauses": list(self.monitor.hc.owned),
+                "next_home_connect_pause": self.monitor.data.get("next_home_connect_pause"),
                 "restore_candidate": self.monitor.data.get("restore_candidate"),
                 "restore_ready": self.monitor.data.get("restore_ready", False),
                 "restore_status": self.monitor.data.get("restore_status"),

@@ -42,3 +42,7 @@ DEFAULT_EVCC_VOLTAGE = 230
 DEFAULT_EVCC_MARGIN_W = 300
 DEFAULT_EVCC_STABLE_S = 90
 DEFAULT_EVCC_STEP_S = 30
+
+# Optional Home Connect cloud-backed program pause/resume (experimental).
+CONF_HC_PAUSE = "home_connect_pause_buttons"
+CONF_HC_POWERS = "home_connect_load_watts"

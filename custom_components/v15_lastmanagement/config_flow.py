@@ -17,7 +17,9 @@ from .const import (
     DEFAULT_EVCC_PHASES, DEFAULT_EVCC_MIN_A, DEFAULT_EVCC_MAX_A,
     DEFAULT_EVCC_VOLTAGE, DEFAULT_EVCC_MARGIN_W, DEFAULT_EVCC_STABLE_S,
     DEFAULT_EVCC_STEP_S,
+    CONF_HC_PAUSE, CONF_HC_POWERS,
 )
+from .home_connect_support import selectable_pause_buttons, validate_pause_buttons
 
 EVCC_OPTION_KEYS = (
     CONF_EVCC_CURRENT, CONF_EVCC_MODE, CONF_EVCC_POWER, CONF_EVCC_PHASES,
@@ -27,11 +29,13 @@ EVCC_OPTION_KEYS = (
 )
 
 
-def schema(values=None):
+def schema(values=None, hass=None):
     """Keep existing config field IDs and opt-in defaults."""
     values = values or {}
     grid = EntitySelector(EntitySelectorConfig(domain="sensor"))
     loads = EntitySelector(EntitySelectorConfig(domain="switch", multiple=True))
+    hc_buttons = selectable_pause_buttons(hass) if hass is not None else []
+    hc = EntitySelector(EntitySelectorConfig(domain="button", multiple=True, include_entities=hc_buttons))
     return vol.Schema({
         vol.Required(CONF_GRID, default=values.get(CONF_GRID, vol.UNDEFINED)): grid,
         vol.Required(CONF_LIMIT, default=values.get(CONF_LIMIT, DEFAULT_LIMIT)):
@@ -42,6 +46,7 @@ def schema(values=None):
         vol.Required(CONF_STALE, default=values.get(CONF_STALE, DEFAULT_STALE)):
             vol.All(vol.Coerce(int), vol.Range(min=15, max=3600)),
         vol.Optional(CONF_LOADS, default=values.get(CONF_LOADS, [])): loads,
+        vol.Optional(CONF_HC_PAUSE, default=values.get(CONF_HC_PAUSE, [])): hc,
         vol.Required(CONF_RESTORE, default=values.get(CONF_RESTORE, DEFAULT_RESTORE)): bool,
         vol.Required(CONF_RESTORE_STABLE,
                      default=values.get(CONF_RESTORE_STABLE, DEFAULT_RESTORE_STABLE)):
@@ -112,11 +117,15 @@ def evcc_schema(previous=None):
     })
 
 
-def validation_error(data):
+def validation_error(data, hass=None):
     if data[CONF_RESERVE] >= data[CONF_LIMIT]:
         return "reserve_too_high"
-    if data.get(CONF_RESTORE, False) and not data.get(CONF_LOADS):
+    if data.get(CONF_RESTORE, False) and not (data.get(CONF_LOADS) or data.get(CONF_HC_PAUSE)):
         return "restore_requires_loads"
+    if data.get(CONF_HC_PAUSE) and not data.get(CONF_RESTORE, False):
+        return "home_connect_requires_restore"
+    if hass is not None and data.get(CONF_HC_PAUSE) and not validate_pause_buttons(hass, data[CONF_HC_PAUSE]):
+        return "home_connect_entity_invalid"
     return None
 
 
@@ -134,14 +143,14 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
-            error = validation_error(user_input)
+            error = validation_error(user_input, self.hass)
             if error is None:
                 self._pending_data = dict(user_input)
                 if user_input.get(CONF_RESTORE):
                     return await self.async_step_restore()
                 return await self._continue_setup()
             errors["base"] = error
-        return self.async_show_form(step_id="user", data_schema=schema(user_input), errors=errors)
+        return self.async_show_form(step_id="user", data_schema=schema(user_input, self.hass), errors=errors)
 
     async def _continue_setup(self):
         if self._pending_data.get(CONF_EVCC_CONFIGURED):
@@ -154,12 +163,18 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             self._pending_data[CONF_RESTORE_POWERS] = {
                 entity_id: float(user_input[entity_id])
-                for entity_id in self._pending_data[CONF_LOADS]
+                for entity_id in self._pending_data.get(CONF_LOADS, [])
+            }
+            self._pending_data[CONF_HC_POWERS] = {
+                entity_id: float(user_input[entity_id])
+                for entity_id in self._pending_data.get(CONF_HC_PAUSE, [])
             }
             return await self._continue_setup()
         return self.async_show_form(
-            step_id="restore", data_schema=restore_schema(self._pending_data[CONF_LOADS]),
-            description_placeholders=restore_description_placeholders(self._pending_data[CONF_LOADS]),
+            step_id="restore", data_schema=restore_schema(
+                self._pending_data.get(CONF_LOADS, []) + self._pending_data.get(CONF_HC_PAUSE, [])),
+            description_placeholders=restore_description_placeholders(
+                self._pending_data.get(CONF_LOADS, []) + self._pending_data.get(CONF_HC_PAUSE, [])),
         )
 
     async def async_step_evcc(self, user_input=None):
@@ -184,17 +199,18 @@ class V15OptionsFlow(config_entries.OptionsFlow):
         errors = {}
         current = {**self.config_entry.data, **self.config_entry.options}
         if user_input is not None:
-            error = validation_error(user_input)
+            error = validation_error(user_input, self.hass)
             if error is None:
                 self._pending_data = dict(user_input)
                 self._previous = current
                 if user_input.get(CONF_RESTORE):
                     return await self.async_step_restore()
                 self._pending_data[CONF_RESTORE_POWERS] = {}
+                self._pending_data[CONF_HC_POWERS] = {}
                 return await self._continue_options()
             errors["base"] = error
         return self.async_show_form(
-            step_id="init", data_schema=schema(user_input or current), errors=errors
+            step_id="init", data_schema=schema(user_input or current, self.hass), errors=errors
         )
 
     async def _continue_options(self):
@@ -206,14 +222,20 @@ class V15OptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             self._pending_data[CONF_RESTORE_POWERS] = {
                 entity_id: float(user_input[entity_id])
-                for entity_id in self._pending_data[CONF_LOADS]
+                for entity_id in self._pending_data.get(CONF_LOADS, [])
+            }
+            self._pending_data[CONF_HC_POWERS] = {
+                entity_id: float(user_input[entity_id])
+                for entity_id in self._pending_data.get(CONF_HC_PAUSE, [])
             }
             return await self._continue_options()
         return self.async_show_form(
             step_id="restore", data_schema=restore_schema(
-                self._pending_data[CONF_LOADS], self._previous.get(CONF_RESTORE_POWERS, {})
+                self._pending_data.get(CONF_LOADS, []) + self._pending_data.get(CONF_HC_PAUSE, []),
+                {**self._previous.get(CONF_RESTORE_POWERS, {}), **self._previous.get(CONF_HC_POWERS, {})}
             ),
-            description_placeholders=restore_description_placeholders(self._pending_data[CONF_LOADS]),
+            description_placeholders=restore_description_placeholders(
+                self._pending_data.get(CONF_LOADS, []) + self._pending_data.get(CONF_HC_PAUSE, [])),
         )
 
     async def async_step_evcc(self, user_input=None):

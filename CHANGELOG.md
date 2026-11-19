@@ -1,3 +1,10 @@
+## 0.3.6 (2026-11-19)
+
+- Experimental optional Home Connect PauseProgram/ResumeProgram support through existing Home Assistant entities.
+- Confirmed pause ownership and cautious restoration using conservative power, stable reserve and minimum downtime.
+- Preserve existing evcc controller and existing switch-load behavior from 0.3.5.
+- No guaranteed peak limiting via Home Connect cloud; no automatic recovery after restart.
+
 # Versionshistorie
 
 ## 0.3.5 – Erstes reguläres Release (2026-11-13)

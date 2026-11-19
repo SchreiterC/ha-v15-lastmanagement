@@ -24,6 +24,7 @@ from .const import (
 from .math_v15 import quarter_start, calculate
 from .restore_logic import power_headroom_ok, periods_satisfied
 from .evcc_control import V15EvccController
+from .home_connect_support import V15HomeConnectController
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class V15Monitor:
         self.restore_since = None
         self.restore_status = "Wiedereinschaltung nicht geprüft"
         self.evcc = V15EvccController(self)
+        self.hc = V15HomeConnectController(self)
 
     def calculate_current(self, now, watts):
         """Fresh quarter-hour budget for a late asynchronous evcc action."""
@@ -219,6 +221,7 @@ class V15Monitor:
         now = dt_util.now()
         slot = quarter_start(now)
         self._cleanup_pending(now)
+        self.hc.reconcile(now)
         if self.demo_data:
             elapsed_demo = (now - self.demo_started).total_seconds() if self.demo_started else 0
             phase = elapsed_demo % 180
@@ -253,6 +256,7 @@ class V15Monitor:
         coverage = self.coverage_s / elapsed if elapsed else 0
         trusted = watts is not None and elapsed >= 60 and coverage >= 0.95 and not self.demo_data
         candidate = self._first_on_switch()
+        hc_candidate = self.hc.first_running() if candidate is None else None
         risky = watts is not None and cal["at_risk"]
 
         restore_candidate, restore_status = self._restore_eligible(now, watts, cal, trusted)
@@ -288,12 +292,12 @@ class V15Monitor:
             reason = "Messwert fehlt, ist veraltet oder Einheit nicht W/kW"
         elif not trusted:
             reason = "Messabdeckung noch unzureichend (mind. 60 s und 95 %)"
-        elif risky and not candidate:
+        elif risky and not (candidate or hc_candidate):
             reason = "Grenzwert gefährdet, kein konfigurierter Schalter eingeschaltet"
         elif risky and self.enabled:
             reason = "Aktive Abschaltung freigegeben"
         elif risky and self.simulation:
-            reason = f"SIMULATION: {candidate} würde abgeschaltet"
+            reason = f"SIMULATION: {candidate or hc_candidate} würde abgeschaltet/pausiert"
         elif risky:
             reason = "Aktive Abschaltung ausgeschaltet"
         else:
@@ -313,6 +317,8 @@ class V15Monitor:
             "demo_data": self.demo_data,
             "reason": reason,
             "next_switch": candidate,
+            "next_home_connect_pause": hc_candidate,
+            "managed_home_connect_pauses": len(self.hc.owned),
             "last_action": self.last_action,
             "managed_off_count": len(self.managed_off),
             "restore_candidate": restore_candidate,
@@ -330,6 +336,7 @@ class V15Monitor:
                 self.evcc.status = "Warte auf vorrangige Lastabschaltung"
         else:
             self.evcc.evaluate(now, trusted, cal, watts)
+        self.hc.evaluate(now, watts, cal, trusted, switch_candidate=candidate, switch_restore=restore_candidate)
         self.notify()
 
         cooldown_ok = self.last_shed_time is None or (now - self.last_shed_time).total_seconds() >= 30
@@ -445,6 +452,10 @@ class V15Monitor:
         self.listeners.append(async_track_state_change_event(
             self.hass, [self.grid_entity], self.update
         ))
+        if self.hc.observed_entities:
+            self.listeners.append(async_track_state_change_event(
+                self.hass, self.hc.observed_entities, self.update
+            ))
         if self.evcc.observed_entities:
             self.listeners.append(async_track_state_change_event(
                 self.hass, self.evcc.observed_entities, self.update
@@ -460,6 +471,7 @@ class V15Monitor:
 
     async def async_stop(self):
         self.evcc.deactivate("HA-Neustart oder Konfigurationswechsel; keine automatische evcc-Freigabe")
+        self.hc.deactivate()
         self.enabled = False
         self.demo_data = False
         for unsubscribe in self.listeners:

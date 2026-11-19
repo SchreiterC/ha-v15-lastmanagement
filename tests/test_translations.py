@@ -7,7 +7,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]/"custom_components"/"v15_lastmanagement"
 FIELDS = {
     "grid_sensor", "limit_kw", "reserve_kw", "reverse_sign", "stale_seconds",
-    "load_switches", "auto_restore", "restore_stable_seconds",
+    "load_switches", "home_connect_pause_buttons", "auto_restore", "restore_stable_seconds",
     "restore_min_off_seconds", "restore_margin_watts", "evcc_configured",
 }
 

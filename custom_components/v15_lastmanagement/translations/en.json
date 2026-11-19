@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configure V15 Lastmanagement",
-        "description": "Choose a grid power sensor and approved load switches. Automatic restoration only switches loads back on if V15 itself switched them off earlier in the same run. **Live load control is disabled after every restart.**",
+        "description": "Choose a grid power sensor and approved load switches. Automatic restoration only switches loads back on if V15 itself switched them off earlier in the same run. **Live load control is disabled after every restart.**\n\n**Home Connect is experimental and requires opt-in automatic restoration.**",
         "data": {
           "grid_sensor": "Grid power sensor",
           "limit_kw": "15-minute average demand threshold (kW)",
@@ -16,7 +16,8 @@
           "restore_stable_seconds": "Required period of sufficient headroom (seconds)",
           "restore_min_off_seconds": "Minimum off duration per load (seconds)",
           "restore_margin_watts": "Additional power margin for restoration (W)",
-          "evcc_configured": "Configure optional evcc charging-point control"
+          "evcc_configured": "Configure optional evcc charging-point control",
+          "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -29,12 +30,13 @@
           "restore_stable_seconds": "Available headroom must remain sufficient for this long before restoration is permitted.",
           "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
           "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
-          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand."
+          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
+          "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed."
         }
       },
       "restore": {
         "title": "Estimated maximum power per load (W)",
-        "description": "**Why are these values needed?** Before switching a load back on, V15 checks whether its expected power **plus an additional safety margin** fits into the available power budget.\n\n**Enter a conservative maximum power estimate in watts for each switch**, preferably including any startup surge. Do not enter average consumption or **kW**. Example: Enter `600` for a load that can draw up to 600 W. Underestimating the power can cause a threshold exceedance.\n\n**Selected switches (same order as the input fields):**\n{switches}\n\nOnly loads previously switched off by V15 are restored automatically. Restarting or changing settings does not restore earlier loads."
+        "description": "**Why are these values needed?** Before switching a load back on, V15 checks whether its expected power **plus an additional safety margin** fits into the available power budget.\n\n**Enter a conservative maximum power estimate in watts for each switch**, preferably including any startup surge. Do not enter average consumption or **kW**. Example: Enter `600` for a load that can draw up to 600 W. Underestimating the power can cause a threshold exceedance.\n\n**Selected switches (same order as the input fields):**\n{switches}\n\nOnly loads previously switched off by V15 are restored automatically. Restarting or changing settings does not restore earlier loads.\n\nFor Home Connect PauseProgram buttons provide a conservative maximum resumption power in watts."
       },
       "evcc": {
         "title": "Configure evcc charging point",
@@ -73,7 +75,9 @@
       "reserve_too_high": "The safety reserve must be lower than the threshold.",
       "restore_requires_loads": "Select at least one load switch to enable automatic restoration.",
       "evcc_current_limits": "Minimum charging current must not exceed the maximum.",
-      "evcc_separate_entities": "Charging mode and maximum current must be different entities."
+      "evcc_separate_entities": "Charging mode and maximum current must be different entities.",
+      "home_connect_requires_restore": "Home Connect requires automatic restoration.",
+      "home_connect_entity_invalid": "Invalid Home Connect PauseProgram button or missing operating state."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement is already configured."
@@ -83,7 +87,7 @@
     "step": {
       "init": {
         "title": "V15 Lastmanagement – Settings",
-        "description": "Configure load shedding and automatic restoration. Restoration is optional. If enabled, a second page asks for **estimated maximum power in watts** for each selected switch. Changing settings resets the current restoration state.",
+        "description": "Configure load shedding and automatic restoration. Restoration is optional. If enabled, a second page asks for **estimated maximum power in watts** for each selected switch. Changing settings resets the current restoration state.\n\n**Home Connect is experimental and requires opt-in automatic restoration.**",
         "data": {
           "grid_sensor": "Grid power sensor",
           "limit_kw": "15-minute average demand threshold (kW)",
@@ -95,7 +99,8 @@
           "restore_stable_seconds": "Required period of sufficient headroom (seconds)",
           "restore_min_off_seconds": "Minimum off duration per load (seconds)",
           "restore_margin_watts": "Additional power margin for restoration (W)",
-          "evcc_configured": "Configure optional evcc charging-point control"
+          "evcc_configured": "Configure optional evcc charging-point control",
+          "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -108,12 +113,13 @@
           "restore_stable_seconds": "Available headroom must remain sufficient for this long before restoration is permitted.",
           "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
           "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
-          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand."
+          "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
+          "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed."
         }
       },
       "restore": {
         "title": "Estimated maximum power per load (W)",
-        "description": "**Why are these values needed?** Before switching a load back on, V15 checks whether its expected power **plus an additional safety margin** fits into the available power budget.\n\n**Enter a conservative maximum power estimate in watts for each switch**, preferably including any startup surge. Do not enter average consumption or **kW**. Example: Enter `600` for a load that can draw up to 600 W. Underestimating the power can cause a threshold exceedance.\n\n**Selected switches (same order as the input fields):**\n{switches}\n\nOnly loads previously switched off by V15 are restored automatically. Restarting or changing settings does not restore earlier loads."
+        "description": "**Why are these values needed?** Before switching a load back on, V15 checks whether its expected power **plus an additional safety margin** fits into the available power budget.\n\n**Enter a conservative maximum power estimate in watts for each switch**, preferably including any startup surge. Do not enter average consumption or **kW**. Example: Enter `600` for a load that can draw up to 600 W. Underestimating the power can cause a threshold exceedance.\n\n**Selected switches (same order as the input fields):**\n{switches}\n\nOnly loads previously switched off by V15 are restored automatically. Restarting or changing settings does not restore earlier loads.\n\nFor Home Connect PauseProgram buttons provide a conservative maximum resumption power in watts."
       },
       "evcc": {
         "title": "Configure evcc charging point",
@@ -152,7 +158,9 @@
       "reserve_too_high": "The safety reserve must be lower than the threshold.",
       "restore_requires_loads": "Select at least one load switch to enable automatic restoration.",
       "evcc_current_limits": "Minimum charging current must not exceed the maximum.",
-      "evcc_separate_entities": "Charging mode and maximum current must be different entities."
+      "evcc_separate_entities": "Charging mode and maximum current must be different entities.",
+      "home_connect_requires_restore": "Home Connect requires automatic restoration.",
+      "home_connect_entity_invalid": "Invalid Home Connect PauseProgram button or missing operating state."
     }
   }
 }

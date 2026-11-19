@@ -1,3 +1,5 @@
+> **Version 0.3.6:** Home Connect Pause/Resume is an experimental, opt-in feature. Existing evcc support from v0.3.5 remains available. Use only with noncritical, pause-capable appliances and test in dry run first. The Home Connect cloud cannot guarantee real-time load shedding. Only a V15-confirmed pause may be resumed automatically; restarts clear ownership. Configure a conservative max resumption wattage for every selected PauseProgram button. No StopProgram and no StartProgram calls.
+
 # V15 Lastmanagement für Home Assistant
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)

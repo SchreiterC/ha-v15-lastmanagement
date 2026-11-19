@@ -1,0 +1,86 @@
+name: Publish V15 0.3.6 stable
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - custom_components/v15_lastmanagement/manifest.json
+      - .github/workflows/publish-stable-036.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: version
+        run: |
+          python - <<'PY'
+          import json, os
+          with open('custom_components/v15_lastmanagement/manifest.json') as f:
+              version = json.load(f)['version']
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"publish={str(version == '0.3.6').lower()}\n")
+          PY
+  unit:
+    needs: verify
+    if: needs.verify.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m compileall -q custom_components/v15_lastmanagement
+      - run: python -m unittest discover -s tests -v
+  hassfest:
+    needs: verify
+    if: needs.verify.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: home-assistant/actions/hassfest@master
+  hacs:
+    needs: verify
+    if: needs.verify.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hacs/action@main
+        with:
+          category: integration
+  ha-runtime:
+    needs: verify
+    if: needs.verify.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - run: python -m pip install -r qa_ha/requirements.txt
+      - run: python -c "import homeassistant; import pytest; raise SystemExit(pytest.main(['-q', 'qa_ha', '--disable-warnings']))"
+  publish:
+    needs: [verify, unit, hassfest, hacs, ha-runtime]
+    if: needs.verify.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if ! gh release view v0.3.6 --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release create v0.3.6 --repo "$GH_REPO" --target "$GITHUB_SHA" \
+              --title "V15 Lastmanagement 0.3.6 – Home Connect" \
+              --notes-file RELEASE_NOTES_0.3.6.md
+          fi
+          gh release view v0.3.6 --repo "$GH_REPO" --json isPrerelease,isDraft,tagName \
+            | jq -e '.tagName == "v0.3.6" and .isPrerelease == false and .isDraft == false'
