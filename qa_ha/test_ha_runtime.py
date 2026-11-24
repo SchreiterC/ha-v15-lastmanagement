@@ -17,6 +17,7 @@ from custom_components.v15_lastmanagement.const import (
     CONF_EVCC_POWER, CONF_EVCC_PHASES, CONF_EVCC_FIXED_PHASES,
     CONF_EVCC_MIN_A, CONF_EVCC_MAX_A, CONF_EVCC_VOLTAGE, CONF_EVCC_MARGIN_W,
     CONF_EVCC_STABLE_S, CONF_EVCC_STEP_S, CONF_EVCC_ALLOW_PAUSE,
+    CONF_RESTART_LIVE,
 )
 
 GRID = "sensor.v15_lab_grid"
@@ -108,6 +109,59 @@ async def test_explicit_service_enable_then_reload_disables(hass: HomeAssistant,
     assert await hass.config_entries.async_reload(v15.entry_id)
     await hass.async_block_till_done()
     assert hass.states.get(switch_id).state == "off"
+
+
+async def test_opt_in_live_shedding_restored_after_reload(hass: HomeAssistant):
+    """Real HA RestoreEntity must preserve only explicit consented mode."""
+    set_virtual_states(hass)
+    load = "switch.v15_dummy_load"
+    hass.states.async_set(load, "on")
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="V15 Restore Lab", unique_id="v15_main",
+        data={**BASE, CONF_LOADS: [load]},
+        options={CONF_RESTART_LIVE: True},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    live = entity_id(hass, entry, "switch", "live_control")
+    simulation = entity_id(hass, entry, "switch", "simulation")
+    assert hass.states.get(live).state == "off"
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": live}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(live).state == "on"
+    assert hass.states.get(simulation).state == "off"
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(live).state == "on"
+    assert hass.states.get(simulation).state == "off"
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_default_live_shedding_remains_off_after_reload(hass: HomeAssistant):
+    """Existing users are not changed by new optional recovery settings."""
+    set_virtual_states(hass)
+    load = "switch.v15_dummy_load"
+    hass.states.async_set(load, "on")
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="V15 Default Lab", unique_id="v15_main",
+        data={**BASE, CONF_LOADS: [load]}, options={},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    live = entity_id(hass, entry, "switch", "live_control")
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": live}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(live).state == "on"
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(live).state == "off"
+    assert await hass.config_entries.async_unload(entry.entry_id)
 
 
 async def test_no_evcc_commands_without_opt_in(hass: HomeAssistant, v15):
