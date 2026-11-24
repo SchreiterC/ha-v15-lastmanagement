@@ -9,6 +9,7 @@ FIELDS = {
     "grid_sensor", "limit_kw", "reserve_kw", "reverse_sign", "stale_seconds",
     "load_switches", "home_connect_pause_buttons", "auto_restore", "restore_stable_seconds",
     "restore_min_off_seconds", "restore_margin_watts", "evcc_configured",
+    "pv_start_configured",
 }
 
 
@@ -52,6 +53,22 @@ class TestFlowTranslations(unittest.TestCase):
                     self.assertEqual(set(step["data"]), set(step["data_description"]))
                     self.assertGreaterEqual(len(step["data"]), 12)
                     self.assertGreater(len(step["description"]), 150)
+
+    def test_pv_start_page_has_bilingual_labels_and_descriptions(self):
+        required = {
+            "pv_selected_program", "pv_start_arm", "pv_forecast_sensor",
+            "pv_earliest", "pv_deadline", "pv_duration_minutes",
+            "pv_minimum_wh", "pv_estimated_watts", "pv_margin_watts",
+            "pv_stable_seconds",
+        }
+        for language, content in (("de", self.de), ("en", self.en)):
+            for section in ("config", "options"):
+                with self.subTest(language=language, section=section):
+                    step = content[section]["step"]["pv_start"]
+                    self.assertEqual(set(step["data"]), required)
+                    self.assertEqual(set(step["data_description"]), required)
+                    self.assertTrue(all(step["data"].values()))
+                    self.assertTrue(all(step["data_description"].values()))
 
     def test_locales_have_matching_structure(self):
         def keys(value):
