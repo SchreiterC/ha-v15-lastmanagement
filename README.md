@@ -30,9 +30,9 @@ options, manually enable the desired live switches and then reload or restart
 Home Assistant. Check that the intended live switches recover, and verify
 that the old dishwasher authorization cannot trigger a start.
 
-## Development preview: PV-optimized Home Connect dishwasher start (planned 0.3.7)
+## Development preview: PV-optimized Home Connect dishwasher start (0.3.7b1 / planned 0.3.7)
 
-**Unreleased / experimental:** available only on `feature/pv-home-connect-start`.
+**Unreleased / experimental beta 0.3.7b1:** available only on `feature/pv-home-connect-start`. Use this beta version to verify that the Marketplace installed the newest branch files, including `translations/de.json`.
 Version 0.3.6 and its existing switch / evcc / pause-resume behavior remain unchanged.
 No guaranteed compliance with utility billing demand peaks.
 
