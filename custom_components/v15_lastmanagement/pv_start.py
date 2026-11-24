@@ -34,6 +34,10 @@ class V15PvStartController:
         self.configured = bool(monitor.config.get(CONF_PV_ENABLED, False))
         self.enabled = False  # Intentionally never restored after HA restart.
         self.busy = False
+        # A restored live switch must never use authorization left ON
+        # from the previous Home Assistant runtime.
+        self.require_fresh_arm = False
+        self.arm_seen_off = False
         self.last_attempt = None
         self.pending_until = None
         self.stable_since = None
@@ -142,7 +146,30 @@ class V15PvStartController:
     def deactivate(self, reason="PV-Start deaktiviert"):
         self.enabled = False
         self.stable_since = None
+        self.require_fresh_arm = False
+        self.arm_seen_off = False
         self.last_reason = reason
+
+    def restore_live_enable(self):
+        """Resume monitoring, but require new OFF -> ON authorization."""
+        self.enabled = True
+        self.require_fresh_arm = True
+        self.arm_seen_off = False
+        self.stable_since = None
+        self.last_reason = "Warte nach Neustart auf neue Startfreigabe"
+
+    def _fresh_arm_ready(self):
+        """An old ON after restart cannot grant consent to start."""
+        if not self.require_fresh_arm:
+            return True
+        arm = self._state(self.m.config.get(CONF_PV_ARM))
+        if arm is not None and arm.state == "off":
+            self.arm_seen_off = True
+        if not self.arm_seen_off or arm is None or arm.state != "on":
+            self.last_reason = "Nach Neustart: Startfreigabe AUS und erneut EIN schalten"
+            return False
+        self.require_fresh_arm = False
+        return True
 
     def _state(self, entity):
         return self.m.hass.states.get(entity) if entity else None
@@ -199,6 +226,9 @@ class V15PvStartController:
             self.last_reason = "Warte auf einmalige Startfreigabe"
             self.stable_since = None
             return
+        if not self._fresh_arm_ready():
+            self.stable_since = None
+            return
         if not self._ready():
             self.last_reason = "Gerät ist nicht fernstartbereit"
             self.stable_since = None
@@ -252,6 +282,7 @@ class V15PvStartController:
                     or not self.m.data.get("trusted_for_control")
                     or watts is None or cal is None or cal["at_risk"]
                     or not self._is(self.m.config.get(CONF_PV_ARM), "on")
+                    or self.require_fresh_arm
                     or not self._ready()):
                 return
             plan = self._plan(now)
