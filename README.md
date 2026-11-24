@@ -2,6 +2,34 @@
 
 # V15 Lastmanagement für Home Assistant
 
+## Optional restoration of live mode after restart (development preview)
+
+Two independent, **default-OFF** options are available in the V15 setup and
+options screen:
+
+- `restore_live_control_on_restart`: restore **V15 Aktive Lastabschaltung**
+  only if it was ON before the restart or reload. Fresh meter measurements,
+  minimum coverage and all normal shedding interlocks are still required.
+  No previously shed device is claimed or restored by V15 after a restart.
+- `restore_pv_start_on_restart`: restore the **V15 PV-Programmstart** live
+  switch only if it was ON previously. **This does not restore permission to
+  start the dishwasher.** After HA is fully running, the designated
+  `input_boolean` must be observed OFF, and then deliberately set ON again.
+  A helper left ON from an earlier session is never a valid start request.
+
+If an option is OFF, its corresponding live switch remains OFF after restart,
+and the existing conservative simulation mode defaults to ON. The separate
+evcc controller still requires manual activation after restart. Synthetic
+demonstration mode is not restored. Explicitly enabling either live mode
+deactivates simulation. The opt-in restoration follows HA's `RestoreEntity`
+state store, which records switch state and may be unavailable before the
+first successful save of a restorable entity.
+
+**For testing:** after upgrading the development branch, first configure these
+options, manually enable the desired live switches and then reload or restart
+Home Assistant. Check that the intended live switches recover, and verify
+that the old dishwasher authorization cannot trigger a start.
+
 ## Development preview: PV-optimized Home Connect dishwasher start (planned 0.3.7)
 
 **Unreleased / experimental:** available only on `feature/pv-home-connect-start`.
