@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "V15 Lastmanagement einrichten",
-        "description": "Wähle den Netzleistungssensor und die Verbraucher für die Laststeuerung. Mit der Option zur automatischen Wiedereinschaltung darf V15 nur Schalter zurückschalten, die V15 zuvor selbst abgeschaltet hat. **Die aktive Laststeuerung ist nach jedem Neustart ausgeschaltet.**\n\n**Home Connect ist experimentell und benötigt ausdrücklich aktivierte Wiedereinschaltung.**",
+        "description": "Wähle den Netzleistungssensor und die Verbraucher für die Laststeuerung. Mit der Option zur automatischen Wiedereinschaltung darf V15 nur Schalter zurückschalten, die V15 zuvor selbst abgeschaltet hat. **Die aktive Laststeuerung ist nach einem Neustart standardmäßig ausgeschaltet. Eine Wiederherstellung ist separat aktivierbar.**\n\n**Home Connect ist experimentell und benötigt ausdrücklich aktivierte Wiedereinschaltung.**",
         "data": {
           "grid_sensor": "Netzleistungssensor",
           "limit_kw": "Grenzwert für den 15-Minuten-Durchschnitt (kW)",
