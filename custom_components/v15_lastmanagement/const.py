@@ -46,3 +46,16 @@ DEFAULT_EVCC_STEP_S = 30
 # Optional Home Connect cloud-backed program pause/resume (experimental).
 CONF_HC_PAUSE = "home_connect_pause_buttons"
 CONF_HC_POWERS = "home_connect_load_watts"
+
+# Experimental, separately armed dishwasher PV scheduling (never default-on).
+CONF_PV_ENABLED = "pv_start_configured"
+CONF_PV_SELECTED = "pv_selected_program"
+CONF_PV_ARM = "pv_start_arm"
+CONF_PV_FORECAST = "pv_forecast_sensor"
+CONF_PV_EARLIEST = "pv_earliest"
+CONF_PV_DEADLINE = "pv_deadline"
+CONF_PV_DURATION = "pv_duration_minutes"
+CONF_PV_MIN_WH = "pv_minimum_wh"
+CONF_PV_WATTS = "pv_estimated_watts"
+CONF_PV_MARGIN = "pv_margin_watts"
+CONF_PV_STABLE = "pv_stable_seconds"
