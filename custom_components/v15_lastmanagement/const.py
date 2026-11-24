@@ -59,3 +59,9 @@ CONF_PV_MIN_WH = "pv_minimum_wh"
 CONF_PV_WATTS = "pv_estimated_watts"
 CONF_PV_MARGIN = "pv_margin_watts"
 CONF_PV_STABLE = "pv_stable_seconds"
+
+# Restore previous live switch states after reload/restart (explicit opt-in).
+# Only the enable switches are restored; load ownership and PV one-shot consent
+# are never persisted.
+CONF_RESTART_LIVE = "restore_live_control_on_restart"
+CONF_RESTART_PV = "restore_pv_start_on_restart"
