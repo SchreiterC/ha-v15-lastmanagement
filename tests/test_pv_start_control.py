@@ -10,6 +10,7 @@ OPERATION = "sensor.dishwasher_operation"
 DOOR = "sensor.dishwasher_door"
 REMOTE = "binary_sensor.dishwasher_remote"
 REMOTE_START = "binary_sensor.dishwasher_remote_start"
+CONNECTED = "binary_sensor.dishwasher_connected"
 ARM = "input_boolean.dishwasher_start"
 FORECAST = "sensor.pv_forecast"
 
@@ -42,7 +43,7 @@ class TestPvStartController(unittest.IsolatedAsyncioTestCase):
         p.remote = REMOTE
         p.remote_start = REMOTE_START
         p.device_id = "virtual-device"
-        p.connectivity = None
+        p.connectivity = CONNECTED
         self.monitor.simulation = False
         self.monitor.slot = clock.now.replace(minute=0, second=0, microsecond=0)
         self.monitor.energy_wh = 50
@@ -59,6 +60,7 @@ class TestPvStartController(unittest.IsolatedAsyncioTestCase):
             DOOR: FakeState("closed"),
             REMOTE: FakeState("on"),
             REMOTE_START: FakeState("on"),
+            CONNECTED: FakeState("on"),
             ARM: FakeState("on"),
             FORECAST: FakeState("1", {"wh_period_15m": values}),
         })
