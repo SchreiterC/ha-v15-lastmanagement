@@ -152,7 +152,8 @@ class V15PvStartControl(V15BaseSwitch):
     async def async_turn_on(self, **kwargs):
         p = self.monitor.pv
         if not p.configured or not all(
-            (p.selected, p.operation, p.door, p.remote, p.remote_start, p.device_id)
+            (p.selected, p.operation, p.door, p.remote, p.remote_start,
+             p.connectivity, p.device_id)
         ):
             raise ValueError("Home Connect dishwasher entities are incomplete")
         if self.monitor.demo_data:
