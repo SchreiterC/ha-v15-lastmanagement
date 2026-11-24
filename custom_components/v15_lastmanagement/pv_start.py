@@ -162,6 +162,11 @@ class V15PvStartController:
         """An old ON after restart cannot grant consent to start."""
         if not self.require_fresh_arm:
             return True
+        # Do not accept an early, transient OFF while integrations restore
+        # their startup states. Only observe authorization after HA is running.
+        if not getattr(self.m.hass, "is_running", True):
+            self.last_reason = "Warte auf vollständig gestartetes Home Assistant"
+            return False
         arm = self._state(self.m.config.get(CONF_PV_ARM))
         if arm is not None and arm.state == "off":
             self.arm_seen_off = True
