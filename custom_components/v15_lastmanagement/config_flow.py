@@ -258,8 +258,6 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             error = evcc_error(user_input)
             if error is None:
                 self._pending_data.update(user_input)
-                await self.async_set_unique_id("v15_main")
-                self._abort_if_unique_id_configured()
                 return await self._finish_setup()
             errors["base"] = error
         return self.async_show_form(step_id="evcc", data_schema=evcc_schema(user_input), errors=errors)
