@@ -136,6 +136,46 @@ class TestPvStartController(unittest.IsolatedAsyncioTestCase):
         fresh = V15PvStartController(self.monitor)
         self.assertFalse(fresh.enabled)
 
+    async def test_recovered_pv_live_rejects_old_on_consent(self):
+        p = self.monitor.pv
+        p.restore_live_enable()
+        p.stable_since = clock.now - timedelta(seconds=100)
+        w, cal = self.calculate()
+        p.evaluate(clock.now, w, cal, True)
+        self.assertTrue(p.require_fresh_arm)
+        self.assertFalse(p.arm_seen_off)
+        self.assertFalse(self.hass.tasks)
+
+        # Clear the old ON, then deliberately arm the new run.
+        self.hass.states[ARM] = FakeState("off")
+        p.evaluate(clock.now, w, cal, True)
+        self.assertTrue(p.arm_seen_off)
+        self.assertTrue(p.require_fresh_arm)
+        self.assertFalse(self.hass.tasks)
+        self.hass.states[ARM] = FakeState("on")
+        p.evaluate(clock.now, w, cal, True)
+        self.assertFalse(p.require_fresh_arm)
+        self.assertFalse(self.hass.tasks)  # must wait for stable headroom
+        clock.now += timedelta(seconds=95)
+        w, cal = self.calculate()
+        p.evaluate(clock.now, w, cal, True)
+        await asyncio.gather(*self.hass.tasks)
+        self.assertEqual(sum(x[0] == "home_connect" for x in self.calls), 1)
+        self.assertEqual(self.hass.states[ARM].state, "off")
+
+    async def test_recovered_live_can_be_freshly_armed_from_off(self):
+        p = self.monitor.pv
+        self.hass.states[ARM] = FakeState("off")
+        p.restore_live_enable()
+        w, cal = self.calculate()
+        p.evaluate(clock.now, w, cal, True)
+        self.assertTrue(p.arm_seen_off)
+        self.assertFalse(self.hass.tasks)
+        self.hass.states[ARM] = FakeState("on")
+        p.evaluate(clock.now, w, cal, True)
+        self.assertFalse(p.require_fresh_arm)
+        self.assertFalse(self.hass.tasks)
+
     async def test_cloud_exception_consumes_authorization_and_does_not_retry(self):
         self.fail_start = True
         p = self.monitor.pv
