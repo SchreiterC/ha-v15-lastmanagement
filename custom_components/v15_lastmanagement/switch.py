@@ -143,6 +143,13 @@ class V15PvStartControl(V15BaseSwitch):
         p = self.monitor.pv
         return {
             "status": p.last_reason,
+            "missing_home_connect_entities": list(getattr(p, "missing_entities", [])),
+            "selected_program_entity": p.selected,
+            "operation_state_entity": p.operation,
+            "door_entity": p.door,
+            "remote_control_entity": p.remote,
+            "remote_start_entity": p.remote_start,
+            "connectivity_entity": p.connectivity,
             "planned_start": p.planned_start,
             "planned_energy_wh": p.planned_wh,
             "last_attempt": p.last_attempt,
