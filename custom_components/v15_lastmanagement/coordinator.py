@@ -25,6 +25,7 @@ from .math_v15 import quarter_start, calculate
 from .restore_logic import power_headroom_ok, periods_satisfied
 from .evcc_control import V15EvccController
 from .home_connect_support import V15HomeConnectController
+from .pv_start import V15PvStartController
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +72,7 @@ class V15Monitor:
         self.restore_status = "Wiedereinschaltung nicht geprüft"
         self.evcc = V15EvccController(self)
         self.hc = V15HomeConnectController(self)
+        self.pv = V15PvStartController(self)
 
     def calculate_current(self, now, watts):
         """Fresh quarter-hour budget for a late asynchronous evcc action."""
@@ -337,6 +339,7 @@ class V15Monitor:
         else:
             self.evcc.evaluate(now, trusted, cal, watts)
         self.hc.evaluate(now, watts, cal, trusted, switch_candidate=candidate, switch_restore=restore_candidate)
+        self.pv.evaluate(now, watts, cal, trusted)
         self.notify()
 
         cooldown_ok = self.last_shed_time is None or (now - self.last_shed_time).total_seconds() >= 30
@@ -452,6 +455,10 @@ class V15Monitor:
         self.listeners.append(async_track_state_change_event(
             self.hass, [self.grid_entity], self.update
         ))
+        if self.pv.observed_entities:
+            self.listeners.append(async_track_state_change_event(
+                self.hass, self.pv.observed_entities, self.update
+            ))
         if self.hc.observed_entities:
             self.listeners.append(async_track_state_change_event(
                 self.hass, self.hc.observed_entities, self.update
@@ -472,6 +479,7 @@ class V15Monitor:
     async def async_stop(self):
         self.evcc.deactivate("HA-Neustart oder Konfigurationswechsel; keine automatische evcc-Freigabe")
         self.hc.deactivate()
+        self.pv.deactivate("HA-Neustart oder Konfigurationswechsel")
         self.enabled = False
         self.demo_data = False
         for unsubscribe in self.listeners:
