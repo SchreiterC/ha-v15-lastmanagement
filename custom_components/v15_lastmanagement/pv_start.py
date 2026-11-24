@@ -8,7 +8,6 @@ from datetime import timedelta
 import logging
 import math
 
-from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -53,6 +52,7 @@ class V15PvStartController:
             self.resolve()
 
     def resolve(self):
+        from homeassistant.helpers import entity_registry as er
         registry = er.async_get(self.m.hass)
         selected = self.m.config.get(CONF_PV_SELECTED)
         entry = registry.async_get(selected) if selected else None
