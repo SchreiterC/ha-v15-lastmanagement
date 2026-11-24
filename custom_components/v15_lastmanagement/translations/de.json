@@ -18,7 +18,9 @@
           "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
           "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten",
           "home_connect_pause_buttons": "Home-Connect-Pause-Taster (experimentell)",
-          "pv_start_configured": "Experimentellen PV-optimierten Home-Connect-Programmstart einrichten"
+          "pv_start_configured": "Experimentellen PV-optimierten Home-Connect-Programmstart einrichten",
+          "restore_live_control_on_restart": "Aktive Lastabschaltung nach Neustart wiederherstellen (optional)",
+          "restore_pv_start_on_restart": "PV-Programmstart nach Neustart wieder aktivieren (optional)"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -33,7 +35,9 @@
           "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
           "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden.",
           "home_connect_pause_buttons": "Nur geeignete unkritische Programme mit PauseProgram auswählen. Die Rückschaltung benötigt ResumeProgram und bestätigten Betriebszustand. Cloud-bedingte Verzögerungen möglich.",
-          "pv_start_configured": "Separater optionaler Startcontroller nur für Home-Connect-Geschirrspüler. Nach Neustart deaktiviert. Einmalige Startfreigabe erforderlich."
+          "pv_start_configured": "Separater optionaler Startcontroller nur für Home-Connect-Geschirrspüler. Nach Neustart deaktiviert. Einmalige Startfreigabe erforderlich.",
+          "restore_live_control_on_restart": "Nur wenn die aktive Lastabschaltung vorher eingeschaltet war. Die Steuerung greift erst nach gültigen Messwerten und ausreichender Messabdeckung ein. Bereits abgeschaltete Lasten werden nicht nachträglich beansprucht.",
+          "restore_pv_start_on_restart": "Stellt ausschließlich die PV-Startbereitschaft wieder her. Eine alte Startfreigabe wird nicht übernommen. Die Startfreigabe muss nach dem Neustart AUS und erneut EIN geschaltet werden."
         }
       },
       "restore": {
@@ -136,7 +140,9 @@
           "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
           "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten",
           "home_connect_pause_buttons": "Home-Connect-Pause-Taster (experimentell)",
-          "pv_start_configured": "Experimentellen PV-optimierten Home-Connect-Programmstart einrichten"
+          "pv_start_configured": "Experimentellen PV-optimierten Home-Connect-Programmstart einrichten",
+          "restore_live_control_on_restart": "Aktive Lastabschaltung nach Neustart wiederherstellen (optional)",
+          "restore_pv_start_on_restart": "PV-Programmstart nach Neustart wieder aktivieren (optional)"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -151,7 +157,9 @@
           "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
           "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden.",
           "home_connect_pause_buttons": "Nur geeignete unkritische Programme mit PauseProgram auswählen. Die Rückschaltung benötigt ResumeProgram und bestätigten Betriebszustand. Cloud-bedingte Verzögerungen möglich.",
-          "pv_start_configured": "Separater optionaler Startcontroller nur für Home-Connect-Geschirrspüler. Nach Neustart deaktiviert. Einmalige Startfreigabe erforderlich."
+          "pv_start_configured": "Separater optionaler Startcontroller nur für Home-Connect-Geschirrspüler. Nach Neustart deaktiviert. Einmalige Startfreigabe erforderlich.",
+          "restore_live_control_on_restart": "Nur wenn die aktive Lastabschaltung vorher eingeschaltet war. Die Steuerung greift erst nach gültigen Messwerten und ausreichender Messabdeckung ein. Bereits abgeschaltete Lasten werden nicht nachträglich beansprucht.",
+          "restore_pv_start_on_restart": "Stellt ausschließlich die PV-Startbereitschaft wieder her. Eine alte Startfreigabe wird nicht übernommen. Die Startfreigabe muss nach dem Neustart AUS und erneut EIN geschaltet werden."
         }
       },
       "restore": {
