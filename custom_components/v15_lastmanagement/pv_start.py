@@ -6,7 +6,6 @@ runtime switch enable. Never attempts to start an oven or a washer.
 """
 from datetime import timedelta
 import logging
-import math
 
 from homeassistant.util import dt as dt_util
 
@@ -71,16 +70,9 @@ class V15PvStartController:
         self.remote = lookup("binary_sensor", REMOTE)
         self.remote_start = lookup("binary_sensor", REMOTE_START)
         self.device_id = entry.device_id
-        # Connectivity is not necessarily a BSH status entity: inspect the
-        # parent HA device registry instead of assuming a unique-ID suffix.
-        self.connectivity = next(
-            (e.entity_id for e in registry.entities.values()
-             if e.platform == "home_connect" and e.device_id == entry.device_id
-             and e.domain == "binary_sensor"
-             and "connectivity" in e.entity_id),
-            None,
-        )
-        if not all((self.operation, self.door, self.remote, self.remote_start, self.device_id)):
+        self.connectivity = lookup("binary_sensor", CONNECTED)
+        if not all((self.operation, self.door, self.remote, self.remote_start,
+                    self.connectivity, self.device_id)):
             self.last_reason = "Pflichtsensoren für sicheren Fernstart fehlen"
 
     @property
@@ -104,7 +96,7 @@ class V15PvStartController:
 
     def _ready(self):
         if not all((self.selected, self.operation, self.door, self.remote,
-                    self.remote_start, self.device_id)):
+                    self.remote_start, self.connectivity, self.device_id)):
             return False
         selected = self._state(self.selected)
         # Deliberately restrict first release to dishwashers.
@@ -115,7 +107,7 @@ class V15PvStartController:
                 and door is not None and door.state in ("closed", "locked")
                 and self._is(self.remote, "on")
                 and self._is(self.remote_start, "on")
-                and (self.connectivity is None or self._is(self.connectivity, "on")))
+                and self._is(self.connectivity, "on"))
 
     def _plan(self, now):
         state = self._state(self.m.config.get(CONF_PV_FORECAST))
@@ -223,6 +215,9 @@ class V15PvStartController:
                 {"entity_id": self.m.config[CONF_PV_ARM]}, blocking=True)
             if self._is(self.m.config.get(CONF_PV_ARM), "on"):
                 self.last_reason = "Startfreigabe konnte nicht zurückgesetzt werden"
+                return
+            if not self.enabled or self.m.simulation or self.m.demo_data or not self._ready():
+                self.last_reason = "PV-Start nach Freigabeprüfung deaktiviert"
                 return
             self.pending_until = dt_util.now() + timedelta(minutes=3)
             await self.m.hass.services.async_call(
