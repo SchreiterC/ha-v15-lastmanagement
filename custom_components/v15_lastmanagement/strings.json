@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configure V15 Lastmanagement",
-        "description": "Choose a grid power sensor and approved load switches. Automatic restoration only switches loads back on if V15 itself switched them off earlier in the same run. **Live load control is disabled after restart by default, unless explicitly opted in to restore it.**\n\n**Home Connect is experimental and requires opt-in automatic restoration.**",
+        "description": "Select the grid power sensor and loads eligible for control. **Automatic load restoration** applies only to appliances V15 itself switched off during the current run. The two **resume after restart** options instead restore the live-control switch states for load shedding and PV start control. Both are disabled by default.\n\n**Home Connect pause/resume is experimental and requires automatic load restoration.**",
         "data": {
           "grid_sensor": "Grid power sensor",
           "limit_kw": "15-minute average demand threshold (kW)",
@@ -19,8 +19,8 @@
           "evcc_configured": "Configure optional evcc charging-point control",
           "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)",
           "pv_start_configured": "Configure experimental PV-optimized Home Connect program start",
-          "restore_live_control_on_restart": "Restore live load shedding after restart (optional)",
-          "restore_pv_start_on_restart": "Re-enable PV program start after restart (optional)"
+          "restore_live_control_on_restart": "Resume load shedding after restart (only if previously enabled)",
+          "restore_pv_start_on_restart": "Resume PV start control after restart (only if previously enabled)"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -36,8 +36,8 @@
           "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
           "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed.",
           "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization.",
-          "restore_live_control_on_restart": "Only if previously enabled. Acts only with trusted measurements and sufficient coverage. No old load-shedding ownership is restored.",
-          "restore_pv_start_on_restart": "Restores observation only, never an old one-shot start authorization. Switch authorization OFF and then ON after reboot to start."
+          "restore_live_control_on_restart": "Remembers whether the “V15 Active Load Shedding” switch was on and re-enables it after a Home Assistant restart or integration reload. If it was off, it stays off. Actual shedding still requires valid meter data and sufficient measurement coverage. Loads shed before the restart are not automatically switched back on.",
+          "restore_pv_start_on_restart": "Remembers whether the “V15 PV Program Start” switch was on and re-enables this controller after restart or reload. This does not start a dishwasher program. Any previous one-shot authorization is invalid. For a new cycle, switch the start authorization helper OFF and then deliberately back ON after restart."
         }
       },
       "restore": {
@@ -126,7 +126,7 @@
     "step": {
       "init": {
         "title": "V15 Lastmanagement – Settings",
-        "description": "Configure load shedding and automatic restoration. Restoration is optional. If enabled, a second page asks for **estimated maximum power in watts** for each selected switch. Changing settings resets the current restoration state.\n\n**Home Connect is experimental and requires opt-in automatic restoration.**",
+        "description": "Configure load shedding and automatic load restoration. When restoration is enabled, a separate page requests the estimated maximum power (W) of each selected load. Changing settings resets previous load-restoration ownership.\n\n**The two restart options only re-enable previously enabled V15 controllers; they do not restore shed loads or a previous dishwasher start authorization.**\n\n**Home Connect pause/resume is experimental and requires automatic load restoration.**",
         "data": {
           "grid_sensor": "Grid power sensor",
           "limit_kw": "15-minute average demand threshold (kW)",
@@ -141,8 +141,8 @@
           "evcc_configured": "Configure optional evcc charging-point control",
           "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)",
           "pv_start_configured": "Configure experimental PV-optimized Home Connect program start",
-          "restore_live_control_on_restart": "Restore live load shedding after restart (optional)",
-          "restore_pv_start_on_restart": "Re-enable PV program start after restart (optional)"
+          "restore_live_control_on_restart": "Resume load shedding after restart (only if previously enabled)",
+          "restore_pv_start_on_restart": "Resume PV start control after restart (only if previously enabled)"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -158,8 +158,8 @@
           "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
           "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed.",
           "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization.",
-          "restore_live_control_on_restart": "Only if previously enabled. Acts only with trusted measurements and sufficient coverage. No old load-shedding ownership is restored.",
-          "restore_pv_start_on_restart": "Restores observation only, never an old one-shot start authorization. Switch authorization OFF and then ON after reboot to start."
+          "restore_live_control_on_restart": "Remembers whether the “V15 Active Load Shedding” switch was on and re-enables it after a Home Assistant restart or integration reload. If it was off, it stays off. Actual shedding still requires valid meter data and sufficient measurement coverage. Loads shed before the restart are not automatically switched back on.",
+          "restore_pv_start_on_restart": "Remembers whether the “V15 PV Program Start” switch was on and re-enables this controller after restart or reload. This does not start a dishwasher program. Any previous one-shot authorization is invalid. For a new cycle, switch the start authorization helper OFF and then deliberately back ON after restart."
         }
       },
       "restore": {
