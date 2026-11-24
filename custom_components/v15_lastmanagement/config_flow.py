@@ -21,6 +21,7 @@ from .const import (
     CONF_PV_ENABLED, CONF_PV_SELECTED, CONF_PV_ARM, CONF_PV_FORECAST,
     CONF_PV_EARLIEST, CONF_PV_DEADLINE, CONF_PV_DURATION,
     CONF_PV_MIN_WH, CONF_PV_WATTS, CONF_PV_MARGIN, CONF_PV_STABLE,
+    CONF_RESTART_LIVE, CONF_RESTART_PV,
 )
 from .home_connect_support import selectable_pause_buttons, validate_pause_buttons
 from .pv_start_logic import parse_clock
@@ -66,6 +67,10 @@ def schema(values=None, hass=None):
                      default=values.get(CONF_EVCC_CONFIGURED, False)): bool,
         vol.Required(CONF_PV_ENABLED,
                      default=values.get(CONF_PV_ENABLED, False)): bool,
+        vol.Required(CONF_RESTART_LIVE,
+                     default=values.get(CONF_RESTART_LIVE, False)): bool,
+        vol.Required(CONF_RESTART_PV,
+                     default=values.get(CONF_RESTART_PV, False)): bool,
     })
 
 
