@@ -2,6 +2,52 @@
 
 # V15 Lastmanagement für Home Assistant
 
+## Development preview: PV-optimized Home Connect dishwasher start (planned 0.3.7)
+
+**Unreleased / experimental:** available only on `feature/pv-home-connect-start`.
+Version 0.3.6 and its existing switch / evcc / pause-resume behavior remain unchanged.
+No guaranteed compliance with utility billing demand peaks.
+
+This opt-in extension uses the existing Home Connect integration and a user-created
+`input_boolean` as a **one-shot authorization**. It only accepts dishwasher
+programs and checks the Home Connect operation state (`ready`), closed/locked door,
+remote start, remote control, selected program, valid V15 metering and 15-minute
+headroom before sending `home_connect.start_selected_program` for the selected
+Home Assistant device. It does not auto-select or change the program.
+
+The forecast sensor must supply `wh_period_15m`: a mapping from ISO-8601
+timestamps to **Wh per 15-minute interval** (e.g. Open-Meteo Solar Forecast
+`energy_production_today`). The scheduler compares expected solar yield over the
+configurable **whole cycle**, rather than using a single daily total or peak.
+It makes no claim to forecast *net* surplus: other future household loads are unknown.
+After the configured deadline, the solar threshold is waived for 15 minutes,
+but V15 headroom, selected program, authorization and all appliance interlocks remain mandatory.
+
+**Activation / safety:**
+
+1. In V15 options enable the experimental PV start, choose a Home Connect
+   **dishwasher Selected Program** entity, one `input_boolean`, the solar
+   forecast sensor, the earliest/latest time and conservative cycle watts.
+2. Turn **V15 PV-Programmstart** ON separately *after each restart*.
+   This is independent of the V15 active load shedding and evcc switches.
+3. At the dishwasher select the program, close its door, enable remote start
+   and deliberately turn the chosen input boolean ON once per load.
+4. V15 switches the helper OFF **before** sending the Home Connect command.
+   It then waits up to three minutes for the appliance to report `run`.
+   Failed or unconfirmed starts require manual checking and **fresh** authorization.
+5. Disable any existing Home Assistant dishwasher start automation first, so
+   two controllers cannot independently issue `StartSelectedProgram`.
+6. Start with a test appliance and conservative power assumptions. Cloud command
+   delay is not suitable for real-time load shedding, and later heating peaks
+   are not guaranteed to fit the quarter-hour billing cap.
+
+Missing or stale V15 readings, insufficient measurement coverage, unavailable
+Home Connect sensors, unconfirmed door/remote states and demo/simulation modes
+block all real starts. The new feature is disabled on restart or reload; the
+core V15 load management remains unchanged.
+
+
+
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 
 **Reguläres Release 0.3.5. Keine zertifizierte oder garantierte Begrenzung abrechnungsrelevanter Lastspitzen.**
