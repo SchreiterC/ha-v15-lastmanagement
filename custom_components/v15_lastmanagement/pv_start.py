@@ -222,11 +222,13 @@ class V15PvStartController:
         if not self.enabled or self.m.simulation or self.m.demo_data:
             self.stable_since = None
             return
-        if not self._is(self.m.config.get(CONF_PV_ARM), "on"):
-            self.last_reason = "Warte auf einmalige Startfreigabe"
+        # Observe OFF even while idle, otherwise a restored controller
+        # would never learn that an old ON authorization was cleared.
+        if not self._fresh_arm_ready():
             self.stable_since = None
             return
-        if not self._fresh_arm_ready():
+        if not self._is(self.m.config.get(CONF_PV_ARM), "on"):
+            self.last_reason = "Warte auf einmalige Startfreigabe"
             self.stable_since = None
             return
         if not self._ready():
