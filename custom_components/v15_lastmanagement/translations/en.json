@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Configure V15 Lastmanagement",
-        "description": "Choose a grid power sensor and approved load switches. Automatic restoration only switches loads back on if V15 itself switched them off earlier in the same run. **Live load control is disabled after every restart.**\n\n**Home Connect is experimental and requires opt-in automatic restoration.**",
+        "description": "Choose a grid power sensor and approved load switches. Automatic restoration only switches loads back on if V15 itself switched them off earlier in the same run. **Live load control is disabled after restart by default, unless explicitly opted in to restore it.**\n\n**Home Connect is experimental and requires opt-in automatic restoration.**",
         "data": {
           "grid_sensor": "Grid power sensor",
           "limit_kw": "15-minute average demand threshold (kW)",
