@@ -50,30 +50,87 @@ class V15PvStartController:
         if self.configured:
             self.resolve()
 
-    def resolve(self):
-        from homeassistant.helpers import entity_registry as er
-        registry = er.async_get(self.m.hass)
+    def resolve(self, registry=None):
+        """Resolve only enabled entities belonging to the selected HA device.
+
+        Home Connect exposes its status and connectivity entities under distinct
+        BSH keys. The registry's translation keys/device class provide a safe
+        fallback if an upstream release changes a BSH key. Ambiguous matches
+        are refused, and entities from other appliances are never accepted.
+        """
+        if registry is None:
+            from homeassistant.helpers import entity_registry as er
+            registry = er.async_get(self.m.hass)
         selected = self.m.config.get(CONF_PV_SELECTED)
         entry = registry.async_get(selected) if selected else None
+        self.selected = None
+        self.operation = None
+        self.door = None
+        self.remote = None
+        self.remote_start = None
+        self.connectivity = None
+        self.device_id = None
+        self.missing_entities = []
         if entry is None or entry.platform != "home_connect" or entry.disabled_by is not None:
             self.last_reason = "Ausgewähltes Home-Connect-Programm nicht verfügbar"
+            self.missing_entities = ["selected_program"]
             return
-        if not entry.entity_id.startswith("select.") or not entry.unique_id.endswith("-" + SELECTED):
+        if (entry.domain != "select" or not entry.unique_id.endswith("-" + SELECTED)
+                or entry.device_id is None):
             self.last_reason = "Nur Home-Connect-Programmauswahl zulässig"
+            self.missing_entities = ["selected_program"]
             return
-        prefix = entry.unique_id[: -len(SELECTED)]
-        def lookup(domain, key):
-            return registry.async_get_entity_id(domain, "home_connect", prefix + key)
+        prefix = entry.unique_id[:-len(SELECTED)]
+        device_id = entry.device_id
+        peers = [
+            entity for entity in registry.entities.values()
+            if entity.platform == "home_connect" and entity.device_id == device_id
+            and entity.disabled_by is None
+        ]
+
+        def lookup(domain, key, translation_key=None, device_class=None):
+            candidate_id = registry.async_get_entity_id(domain, "home_connect", prefix + key)
+            if candidate_id:
+                candidate = registry.async_get(candidate_id)
+                if (candidate is not None and candidate.device_id == device_id
+                        and candidate.platform == "home_connect"
+                        and candidate.disabled_by is None):
+                    return candidate_id
+            # Never fall back to fuzzy, localized names or another device.
+            matches = [
+                entity.entity_id for entity in peers
+                if entity.domain == domain
+                and ((translation_key is not None
+                      and entity.translation_key == translation_key)
+                     or (device_class is not None
+                         and entity.original_device_class == device_class))
+            ]
+            return matches[0] if len(matches) == 1 else None
+
         self.selected = selected
-        self.operation = lookup("sensor", OPERATION)
-        self.door = lookup("sensor", DOOR)
-        self.remote = lookup("binary_sensor", REMOTE)
-        self.remote_start = lookup("binary_sensor", REMOTE_START)
-        self.device_id = entry.device_id
-        self.connectivity = lookup("binary_sensor", CONNECTED)
-        if not all((self.operation, self.door, self.remote, self.remote_start,
-                    self.connectivity, self.device_id)):
-            self.last_reason = "Pflichtsensoren für sicheren Fernstart fehlen"
+        self.device_id = device_id
+        self.operation = lookup("sensor", OPERATION, "operation_state")
+        self.door = lookup("sensor", DOOR, "door")
+        self.remote = lookup("binary_sensor", REMOTE, "remote_control")
+        self.remote_start = lookup("binary_sensor", REMOTE_START, "remote_start")
+        self.connectivity = lookup(
+            "binary_sensor", CONNECTED, device_class="connectivity"
+        )
+        self.missing_entities = [
+            name for name, value in (
+                ("operation_state", self.operation),
+                ("door", self.door),
+                ("remote_control", self.remote),
+                ("remote_start", self.remote_start),
+                ("connectivity", self.connectivity),
+            ) if value is None
+        ]
+        if self.missing_entities:
+            self.last_reason = "Home-Connect-Zuordnung unvollständig: " + ", ".join(
+                self.missing_entities
+            )
+        else:
+            self.last_reason = "Home-Connect-Entitäten erfolgreich zugeordnet"
 
     @property
     def observed_entities(self):
