@@ -17,7 +17,8 @@
           "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
           "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
           "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten",
-          "home_connect_pause_buttons": "Home-Connect-Pause-Taster (experimentell)"
+          "home_connect_pause_buttons": "Home-Connect-Pause-Taster (experimentell)",
+          "pv_start_configured": "Experimentellen PV-optimierten Home-Connect-Programmstart einrichten"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -31,7 +32,8 @@
           "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
           "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
           "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden.",
-          "home_connect_pause_buttons": "Nur geeignete unkritische Programme mit PauseProgram auswählen. Die Rückschaltung benötigt ResumeProgram und bestätigten Betriebszustand. Cloud-bedingte Verzögerungen möglich."
+          "home_connect_pause_buttons": "Nur geeignete unkritische Programme mit PauseProgram auswählen. Die Rückschaltung benötigt ResumeProgram und bestätigten Betriebszustand. Cloud-bedingte Verzögerungen möglich.",
+          "pv_start_configured": "Separater optionaler Startcontroller nur für Home-Connect-Geschirrspüler. Nach Neustart deaktiviert. Einmalige Startfreigabe erforderlich."
         }
       },
       "restore": {
@@ -69,6 +71,34 @@
           "evcc_step_seconds": "Mindestens 30 Sekunden. Nach jeder Änderung wird auf die Rückmeldung der evcc-Entität gewartet.",
           "evcc_allow_pause": "Wenn selbst die Mindestladeleistung das Budget übersteigt, darf V15 den Lademodus smart auf off setzen. Nur V15-eigene Pausen dürfen automatisch freigegeben werden. Bei Neustart oder Deaktivierung kann off bestehen bleiben."
         }
+      },
+      "pv_start": {
+        "title": "PV-optimierten Geschirrspülerstart einrichten",
+        "description": "**Experimentell:** Start nur nach separater Live-Freigabe und einmaliger Startfreigabe, bei gültigem V15-Restbudget. Kein Start bei HA-Neustart, fehlenden Daten oder laufendem Programm. Den bisherigen HA-Start-Automationsablauf vor Aktivierung deaktivieren.",
+        "data": {
+          "pv_selected_program": "Home-Connect-Geschirrspüler: ausgewähltes Programm",
+          "pv_start_arm": "Einmaliger Startfreigabe-Helfer",
+          "pv_forecast_sensor": "Open-Meteo-Solarprognose (15-Minuten-Werte)",
+          "pv_earliest": "Frühester Start (HH:MM)",
+          "pv_deadline": "Spätester Start (HH:MM)",
+          "pv_duration_minutes": "Voraussichtliche Laufzeit (Minuten, Vielfaches von 15)",
+          "pv_minimum_wh": "Minimale prognostizierte PV-Energie (Wh)",
+          "pv_estimated_watts": "Konservativ geschätzte Geräteleistung (W)",
+          "pv_margin_watts": "Zusätzliche Leistungsreserve (W)",
+          "pv_stable_seconds": "Erforderliche stabile Leistungsreserve (Sekunden)"
+        },
+        "data_description": {
+          "pv_selected_program": "Wähle nur die Home-Connect-Entität Ausgewähltes Programm des Geschirrspülers.",
+          "pv_start_arm": "Dieser Helfer muss für jeden einzelnen Spülgang bewusst eingeschaltet werden und wird vor dem Startbefehl ausgeschaltet.",
+          "pv_forecast_sensor": "Sensor mit dem Attribut wh_period_15m (Wh je 15 Minuten), etwa Open-Meteo Solar Forecast Tagesproduktion.",
+          "pv_earliest": "Lokale Uhrzeit. PV-Optimierung beginnt zu dieser Zeit.",
+          "pv_deadline": "Ab diesem Zeitpunkt entfällt nur die PV-Mindestmenge, nicht die V15-Lastprüfung. 15 Minuten Nachlauf.",
+          "pv_duration_minutes": "Schätzdauer des ausgewählten Spülprogramms. Die PV-Energie wird für die gesamte Laufzeit bewertet.",
+          "pv_minimum_wh": "Mindestmenge im besten verbleibenden PV-Fenster vor der Startfrist.",
+          "pv_estimated_watts": "Konservativer Maximalwert einschließlich Aufheizphase. Kein sicherer Schutz vor späteren Lastspitzen.",
+          "pv_margin_watts": "Zusätzlicher Puffer oberhalb der geschätzten Geräteleistung.",
+          "pv_stable_seconds": "Das verfügbare V15-Restbudget muss für diesen Zeitraum stabil ausreichend sein."
+        }
       }
     },
     "error": {
@@ -77,7 +107,12 @@
       "evcc_current_limits": "Der minimale Ladestrom darf nicht größer als der maximale sein.",
       "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein.",
       "home_connect_requires_restore": "Home Connect erfordert die automatische Wiedereinschaltung.",
-      "home_connect_entity_invalid": "Ungültiger Home-Connect-Pause-Taster oder Betriebszustand fehlt."
+      "home_connect_entity_invalid": "Ungültiger Home-Connect-Pause-Taster oder Betriebszustand fehlt.",
+      "pv_time_invalid": "Ungültige Uhrzeit, bitte HH:MM verwenden.",
+      "pv_time_order": "Spätester Start muss nach dem frühesten Start liegen.",
+      "pv_duration_invalid": "Laufzeit muss durch 15 teilbar sein.",
+      "pv_selected_invalid": "Home-Connect-Programmauswahl ungültig.",
+      "pv_dishwasher_only": "Nur Home-Connect-Geschirrspüler sind für diese Funktion zulässig."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement ist bereits eingerichtet."
@@ -100,7 +135,8 @@
           "restore_min_off_seconds": "Mindestausschaltdauer je Verbraucher (Sekunden)",
           "restore_margin_watts": "Zusätzlicher Puffer für die Wiedereinschaltung (W)",
           "evcc_configured": "Optionale evcc-Wallboxsteuerung einrichten",
-          "home_connect_pause_buttons": "Home-Connect-Pause-Taster (experimentell)"
+          "home_connect_pause_buttons": "Home-Connect-Pause-Taster (experimentell)",
+          "pv_start_configured": "Experimentellen PV-optimierten Home-Connect-Programmstart einrichten"
         },
         "data_description": {
           "grid_sensor": "Sensor für die aktuelle Netzleistung. Zulässige Einheit: W oder kW. Im Normalfall müssen positive Werte Netzbezug bedeuten.",
@@ -114,7 +150,8 @@
           "restore_min_off_seconds": "Ein von V15 abgeschalteter Verbraucher bleibt mindestens diese Zeit ausgeschaltet, auch wenn das Budget früher wieder ausreichen würde.",
           "restore_margin_watts": "Zusätzlicher Puffer in Watt, der beim Wiedereinschalten neben der geschätzten Geräteleistung frei sein muss.",
           "evcc_configured": "Aktiviert eine zusätzliche Konfigurationsseite. Die Wallbox wird erst gesteuert, wenn Du anschließend den separaten Schalter „V15 evcc-Ladestromregelung“ ausdrücklich einschaltest. Bestehende evcc-Automationen zur Strombegrenzung müssen vorher deaktiviert werden.",
-          "home_connect_pause_buttons": "Nur geeignete unkritische Programme mit PauseProgram auswählen. Die Rückschaltung benötigt ResumeProgram und bestätigten Betriebszustand. Cloud-bedingte Verzögerungen möglich."
+          "home_connect_pause_buttons": "Nur geeignete unkritische Programme mit PauseProgram auswählen. Die Rückschaltung benötigt ResumeProgram und bestätigten Betriebszustand. Cloud-bedingte Verzögerungen möglich.",
+          "pv_start_configured": "Separater optionaler Startcontroller nur für Home-Connect-Geschirrspüler. Nach Neustart deaktiviert. Einmalige Startfreigabe erforderlich."
         }
       },
       "restore": {
@@ -152,6 +189,34 @@
           "evcc_step_seconds": "Mindestens 30 Sekunden. Nach jeder Änderung wird auf die Rückmeldung der evcc-Entität gewartet.",
           "evcc_allow_pause": "Wenn selbst die Mindestladeleistung das Budget übersteigt, darf V15 den Lademodus smart auf off setzen. Nur V15-eigene Pausen dürfen automatisch freigegeben werden. Bei Neustart oder Deaktivierung kann off bestehen bleiben."
         }
+      },
+      "pv_start": {
+        "title": "PV-optimierten Geschirrspülerstart einrichten",
+        "description": "**Experimentell:** Start nur nach separater Live-Freigabe und einmaliger Startfreigabe, bei gültigem V15-Restbudget. Kein Start bei HA-Neustart, fehlenden Daten oder laufendem Programm. Den bisherigen HA-Start-Automationsablauf vor Aktivierung deaktivieren.",
+        "data": {
+          "pv_selected_program": "Home-Connect-Geschirrspüler: ausgewähltes Programm",
+          "pv_start_arm": "Einmaliger Startfreigabe-Helfer",
+          "pv_forecast_sensor": "Open-Meteo-Solarprognose (15-Minuten-Werte)",
+          "pv_earliest": "Frühester Start (HH:MM)",
+          "pv_deadline": "Spätester Start (HH:MM)",
+          "pv_duration_minutes": "Voraussichtliche Laufzeit (Minuten, Vielfaches von 15)",
+          "pv_minimum_wh": "Minimale prognostizierte PV-Energie (Wh)",
+          "pv_estimated_watts": "Konservativ geschätzte Geräteleistung (W)",
+          "pv_margin_watts": "Zusätzliche Leistungsreserve (W)",
+          "pv_stable_seconds": "Erforderliche stabile Leistungsreserve (Sekunden)"
+        },
+        "data_description": {
+          "pv_selected_program": "Wähle nur die Home-Connect-Entität Ausgewähltes Programm des Geschirrspülers.",
+          "pv_start_arm": "Dieser Helfer muss für jeden einzelnen Spülgang bewusst eingeschaltet werden und wird vor dem Startbefehl ausgeschaltet.",
+          "pv_forecast_sensor": "Sensor mit dem Attribut wh_period_15m (Wh je 15 Minuten), etwa Open-Meteo Solar Forecast Tagesproduktion.",
+          "pv_earliest": "Lokale Uhrzeit. PV-Optimierung beginnt zu dieser Zeit.",
+          "pv_deadline": "Ab diesem Zeitpunkt entfällt nur die PV-Mindestmenge, nicht die V15-Lastprüfung. 15 Minuten Nachlauf.",
+          "pv_duration_minutes": "Schätzdauer des ausgewählten Spülprogramms. Die PV-Energie wird für die gesamte Laufzeit bewertet.",
+          "pv_minimum_wh": "Mindestmenge im besten verbleibenden PV-Fenster vor der Startfrist.",
+          "pv_estimated_watts": "Konservativer Maximalwert einschließlich Aufheizphase. Kein sicherer Schutz vor späteren Lastspitzen.",
+          "pv_margin_watts": "Zusätzlicher Puffer oberhalb der geschätzten Geräteleistung.",
+          "pv_stable_seconds": "Das verfügbare V15-Restbudget muss für diesen Zeitraum stabil ausreichend sein."
+        }
       }
     },
     "error": {
@@ -160,7 +225,12 @@
       "evcc_current_limits": "Der minimale Ladestrom darf nicht größer als der maximale sein.",
       "evcc_separate_entities": "Lademodus und Maximalstrom müssen unterschiedliche Entitäten sein.",
       "home_connect_requires_restore": "Home Connect erfordert die automatische Wiedereinschaltung.",
-      "home_connect_entity_invalid": "Ungültiger Home-Connect-Pause-Taster oder Betriebszustand fehlt."
+      "home_connect_entity_invalid": "Ungültiger Home-Connect-Pause-Taster oder Betriebszustand fehlt.",
+      "pv_time_invalid": "Ungültige Uhrzeit, bitte HH:MM verwenden.",
+      "pv_time_order": "Spätester Start muss nach dem frühesten Start liegen.",
+      "pv_duration_invalid": "Laufzeit muss durch 15 teilbar sein.",
+      "pv_selected_invalid": "Home-Connect-Programmauswahl ungültig.",
+      "pv_dishwasher_only": "Nur Home-Connect-Geschirrspüler sind für diese Funktion zulässig."
     }
   }
 }
