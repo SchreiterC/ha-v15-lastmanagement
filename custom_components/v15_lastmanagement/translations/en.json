@@ -18,7 +18,9 @@
           "restore_margin_watts": "Additional power margin for restoration (W)",
           "evcc_configured": "Configure optional evcc charging-point control",
           "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)",
-          "pv_start_configured": "Configure experimental PV-optimized Home Connect program start"
+          "pv_start_configured": "Configure experimental PV-optimized Home Connect program start",
+          "restore_live_control_on_restart": "Restore live load shedding after restart (optional)",
+          "restore_pv_start_on_restart": "Re-enable PV program start after restart (optional)"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -33,7 +35,9 @@
           "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
           "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
           "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed.",
-          "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization."
+          "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization.",
+          "restore_live_control_on_restart": "Only if previously enabled. Acts only with trusted measurements and sufficient coverage. No old load-shedding ownership is restored.",
+          "restore_pv_start_on_restart": "Restores observation only, never an old one-shot start authorization. Switch authorization OFF and then ON after reboot to start."
         }
       },
       "restore": {
@@ -136,7 +140,9 @@
           "restore_margin_watts": "Additional power margin for restoration (W)",
           "evcc_configured": "Configure optional evcc charging-point control",
           "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)",
-          "pv_start_configured": "Configure experimental PV-optimized Home Connect program start"
+          "pv_start_configured": "Configure experimental PV-optimized Home Connect program start",
+          "restore_live_control_on_restart": "Restore live load shedding after restart (optional)",
+          "restore_pv_start_on_restart": "Re-enable PV program start after restart (optional)"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -151,7 +157,9 @@
           "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
           "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
           "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed.",
-          "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization."
+          "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization.",
+          "restore_live_control_on_restart": "Only if previously enabled. Acts only with trusted measurements and sufficient coverage. No old load-shedding ownership is restored.",
+          "restore_pv_start_on_restart": "Restores observation only, never an old one-shot start authorization. Switch authorization OFF and then ON after reboot to start."
         }
       },
       "restore": {
