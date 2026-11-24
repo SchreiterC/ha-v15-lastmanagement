@@ -17,7 +17,8 @@
           "restore_min_off_seconds": "Minimum off duration per load (seconds)",
           "restore_margin_watts": "Additional power margin for restoration (W)",
           "evcc_configured": "Configure optional evcc charging-point control",
-          "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)"
+          "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)",
+          "pv_start_configured": "Configure experimental PV-optimized Home Connect program start"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -31,7 +32,8 @@
           "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
           "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
           "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
-          "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed."
+          "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed.",
+          "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization."
         }
       },
       "restore": {
@@ -69,6 +71,34 @@
           "evcc_step_seconds": "At least 30 seconds. Wait for entity state confirmation after each command.",
           "evcc_allow_pause": "V15 may change smart to off if even minimum charging power exceeds budget. Only owned pauses may be resumed. The mode can remain off after restart/disable."
         }
+      },
+      "pv_start": {
+        "title": "Configure dishwasher PV start",
+        "description": "**Experimental:** Separate live enable and one-shot authorization are mandatory. No automatic start after HA restart or when readings are invalid. Disable other automations starting this dishwasher.",
+        "data": {
+          "pv_selected_program": "Home Connect dishwasher selected-program entity",
+          "pv_start_arm": "One-shot input boolean start authorization",
+          "pv_forecast_sensor": "Open-Meteo solar forecast sensor (15-minute Wh intervals)",
+          "pv_earliest": "Earliest start (HH:MM)",
+          "pv_deadline": "Latest desired start (HH:MM)",
+          "pv_duration_minutes": "Expected run duration (minutes, multiple of 15)",
+          "pv_minimum_wh": "Minimum forecast PV energy (Wh)",
+          "pv_estimated_watts": "Conservative appliance power estimate (W)",
+          "pv_margin_watts": "Additional power safety margin (W)",
+          "pv_stable_seconds": "Stable headroom required (seconds)"
+        },
+        "data_description": {
+          "pv_selected_program": "Select the dishwasher Home Connect Selected Program entity.",
+          "pv_start_arm": "Turn this helper on deliberately for each run; V15 switches it off before requesting the start.",
+          "pv_forecast_sensor": "Sensor with wh_period_15m attribute (Wh per 15-minute interval), such as Open-Meteo Solar Forecast.",
+          "pv_earliest": "Local time; first possible start time.",
+          "pv_deadline": "From this time the PV minimum is waived but V15 headroom is still required. 15-minute grace.",
+          "pv_duration_minutes": "Expected program duration; forecasts are integrated over the entire period.",
+          "pv_minimum_wh": "Minimum forecast PV energy in the chosen window before deadline.",
+          "pv_estimated_watts": "Conservative maximum including heating; later peaks cannot be guaranteed.",
+          "pv_margin_watts": "Safety buffer in addition to estimated appliance power.",
+          "pv_stable_seconds": "V15 headroom must remain sufficient for this many seconds."
+        }
       }
     },
     "error": {
@@ -77,7 +107,12 @@
       "evcc_current_limits": "Minimum charging current must not exceed the maximum.",
       "evcc_separate_entities": "Charging mode and maximum current must be different entities.",
       "home_connect_requires_restore": "Home Connect requires automatic restoration.",
-      "home_connect_entity_invalid": "Invalid Home Connect PauseProgram button or missing operating state."
+      "home_connect_entity_invalid": "Invalid Home Connect PauseProgram button or missing operating state.",
+      "pv_time_invalid": "Invalid clock time; use HH:MM.",
+      "pv_time_order": "Deadline must be after earliest start.",
+      "pv_duration_invalid": "Duration must be a multiple of 15.",
+      "pv_selected_invalid": "Invalid Home Connect selected-program entity.",
+      "pv_dishwasher_only": "Only Home Connect dishwashers are supported."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement is already configured."
@@ -100,7 +135,8 @@
           "restore_min_off_seconds": "Minimum off duration per load (seconds)",
           "restore_margin_watts": "Additional power margin for restoration (W)",
           "evcc_configured": "Configure optional evcc charging-point control",
-          "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)"
+          "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)",
+          "pv_start_configured": "Configure experimental PV-optimized Home Connect program start"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -114,7 +150,8 @@
           "restore_min_off_seconds": "A load shed by V15 remains off for at least this period, even if headroom becomes available sooner.",
           "restore_margin_watts": "Extra headroom, in watts, required in addition to the estimated load power when switching it on.",
           "evcc_configured": "Adds a separate setup step for evcc entities. Charging is never controlled until the separate V15 evcc charging control switch is explicitly enabled. Disable other automations controlling the evcc maximum current beforehand.",
-          "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed."
+          "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed.",
+          "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization."
         }
       },
       "restore": {
@@ -152,6 +189,34 @@
           "evcc_step_seconds": "At least 30 seconds. Wait for entity state confirmation after each command.",
           "evcc_allow_pause": "V15 may change smart to off if even minimum charging power exceeds budget. Only owned pauses may be resumed. The mode can remain off after restart/disable."
         }
+      },
+      "pv_start": {
+        "title": "Configure dishwasher PV start",
+        "description": "**Experimental:** Separate live enable and one-shot authorization are mandatory. No automatic start after HA restart or when readings are invalid. Disable other automations starting this dishwasher.",
+        "data": {
+          "pv_selected_program": "Home Connect dishwasher selected-program entity",
+          "pv_start_arm": "One-shot input boolean start authorization",
+          "pv_forecast_sensor": "Open-Meteo solar forecast sensor (15-minute Wh intervals)",
+          "pv_earliest": "Earliest start (HH:MM)",
+          "pv_deadline": "Latest desired start (HH:MM)",
+          "pv_duration_minutes": "Expected run duration (minutes, multiple of 15)",
+          "pv_minimum_wh": "Minimum forecast PV energy (Wh)",
+          "pv_estimated_watts": "Conservative appliance power estimate (W)",
+          "pv_margin_watts": "Additional power safety margin (W)",
+          "pv_stable_seconds": "Stable headroom required (seconds)"
+        },
+        "data_description": {
+          "pv_selected_program": "Select the dishwasher Home Connect Selected Program entity.",
+          "pv_start_arm": "Turn this helper on deliberately for each run; V15 switches it off before requesting the start.",
+          "pv_forecast_sensor": "Sensor with wh_period_15m attribute (Wh per 15-minute interval), such as Open-Meteo Solar Forecast.",
+          "pv_earliest": "Local time; first possible start time.",
+          "pv_deadline": "From this time the PV minimum is waived but V15 headroom is still required. 15-minute grace.",
+          "pv_duration_minutes": "Expected program duration; forecasts are integrated over the entire period.",
+          "pv_minimum_wh": "Minimum forecast PV energy in the chosen window before deadline.",
+          "pv_estimated_watts": "Conservative maximum including heating; later peaks cannot be guaranteed.",
+          "pv_margin_watts": "Safety buffer in addition to estimated appliance power.",
+          "pv_stable_seconds": "V15 headroom must remain sufficient for this many seconds."
+        }
       }
     },
     "error": {
@@ -160,7 +225,12 @@
       "evcc_current_limits": "Minimum charging current must not exceed the maximum.",
       "evcc_separate_entities": "Charging mode and maximum current must be different entities.",
       "home_connect_requires_restore": "Home Connect requires automatic restoration.",
-      "home_connect_entity_invalid": "Invalid Home Connect PauseProgram button or missing operating state."
+      "home_connect_entity_invalid": "Invalid Home Connect PauseProgram button or missing operating state.",
+      "pv_time_invalid": "Invalid clock time; use HH:MM.",
+      "pv_time_order": "Deadline must be after earliest start.",
+      "pv_duration_invalid": "Duration must be a multiple of 15.",
+      "pv_selected_invalid": "Invalid Home Connect selected-program entity.",
+      "pv_dishwasher_only": "Only Home Connect dishwashers are supported."
     }
   }
 }
