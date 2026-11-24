@@ -9,7 +9,8 @@ FIELDS = {
     "grid_sensor", "limit_kw", "reserve_kw", "reverse_sign", "stale_seconds",
     "load_switches", "home_connect_pause_buttons", "auto_restore", "restore_stable_seconds",
     "restore_min_off_seconds", "restore_margin_watts", "evcc_configured",
-    "pv_start_configured",
+    "pv_start_configured", "restore_live_control_on_restart",
+    "restore_pv_start_on_restart",
 }
 
 
