@@ -65,3 +65,11 @@ CONF_PV_STABLE = "pv_stable_seconds"
 # are never persisted.
 CONF_RESTART_LIVE = "restore_live_control_on_restart"
 CONF_RESTART_PV = "restore_pv_start_on_restart"
+
+# Opt-in illustrative Austrian grid-capacity charges (not a bill).
+CONF_COST_CONFIGURED = "network_costs_configured"
+CONF_COST_MODE = "network_costs_mode"
+CONF_COST_REGION = "network_costs_region"
+CONF_COST_FIRST = "network_costs_first_cents"
+CONF_COST_HIGHER = "network_costs_higher_cents"
+CONF_COST_MINIMUM = "network_costs_minimum_kw"
