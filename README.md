@@ -2,6 +2,53 @@
 
 # V15 Lastmanagement für Home Assistant
 
+## Austrian grid-capacity charge preview (optional, beta)
+
+From the next V15 beta, users can enable **Netz-Leistungsentgelte (unverbindliches
+Modell)** in the V15 options. Supported: the 14 Austrian electricity network
+areas (nine federal-state network areas plus **Klagenfurt, Linz, Graz,
+Innsbruck and Kleinwalsertal**). Not every grid area is identical to the
+administrative boundaries of its federal state.
+
+Choose the source of the estimate:
+
+- **Draft 2027**: region-specific rates for grid level 7 from the E-Control
+  consultation proposal published **29 October 2026**. These are **not
+  enacted tariffs** and may be modified. The operator-dependent
+  tariff-transition date is **not known automatically**, and the proposed
+  progressive charges must not be presented as payable in 2026 or as the
+  customer's actual 2027 network bill.
+- **Own tariff**: enter two monthly capacity rates (cents/kW/month for the
+  first 10 kW and above 10 kW), plus a minimum billed kW. The default
+  2 kW minimum follows §6 SNE-G-V for regular grid-level-7 connections;
+  different contracts, mini-connections and transition rules can differ.
+
+The optional read-only sensors are:
+
+- **V15 Monatsspitze (lokal beobachtet)**, kW, maximum of *completed*
+  and sufficiently covered 15-minute local grid-import periods.
+- **V15 Leistungsentgelt (Modell, netto)**, EUR/month, based on this
+  observed maximum and the chosen draft/manual rate.
+- **V15 Leistungsentgelt bei Zielspitze (Differenz, Modell)**, EUR/month:
+  a **hypothetical** comparison of observed peak versus V15 target, **not
+  realized savings**. No claim is made that V15 achieved the target.
+
+A complete interval is accepted only with at least 855 of 900 measured
+seconds (95% coverage), and the highest observed monthly 15-minute
+average survives Home Assistant restarts using the HA storage facility.
+Unobserved quarters, power sensor failures, integration activation midmonth
+and retrospective load history cannot be reconstructed; consequently
+the observed peak may **understate** the invoiced maximum. The values exclude
+work-price components, energy tax, network losses, VAT and other fees.
+They are not a substitute for the network operator's smart-meter portal
+or invoice. No network billing service is called, and none of these
+sensors changes the existing V15 load-shedding logic.
+
+**Sources**:
+[E-Control tariff consultation (29 Oct 2026)](https://www.e-control.at/de/konsumenten/begutachtungsentwurf-systemnutzungstarife-verordnung-2027),
+[SNE-T-V 2027 draft, §5(1) NE7](https://www.wko.at/oe/news/0339-hue-snt-v-2027-begutachtungsentwurf.pdf),
+[SNE-G-V §6 (tiered rates and 2 kW minimum)](https://www.ris.bka.gv.at/eli/bgbl/ii/2026/299/P6/NOR40281083).
+
 ## Optional restoration of live mode after restart (development preview)
 
 Two independent, **default-OFF** options are available in the V15 setup and
