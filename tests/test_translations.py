@@ -11,6 +11,7 @@ FIELDS = {
     "restore_min_off_seconds", "restore_margin_watts", "evcc_configured",
     "pv_start_configured", "restore_live_control_on_restart",
     "restore_pv_start_on_restart",
+    "network_costs_configured",
 }
 
 
@@ -70,6 +71,20 @@ class TestFlowTranslations(unittest.TestCase):
                     self.assertEqual(set(step["data_description"]), required)
                     self.assertTrue(all(step["data"].values()))
                     self.assertTrue(all(step["data_description"].values()))
+
+    def test_capacity_charge_configuration_is_localized(self):
+        expected = {
+            "network_costs_mode", "network_costs_region",
+            "network_costs_first_cents", "network_costs_higher_cents",
+            "network_costs_minimum_kw",
+        }
+        for language, translation in (("de", self.de), ("en", self.en)):
+            for section in ("config", "options"):
+                with self.subTest(language=language, section=section):
+                    page = translation[section]["step"]["network_costs"]
+                    self.assertEqual(set(page["data"]), expected)
+                    self.assertEqual(set(page["data_description"]), expected)
+                    self.assertGreater(len(page["description"]), 200)
 
     def test_locales_have_matching_structure(self):
         def keys(value):
