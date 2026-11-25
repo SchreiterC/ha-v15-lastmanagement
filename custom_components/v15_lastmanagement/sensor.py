@@ -20,6 +20,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
     entities = [V15Sensor(m, key, *metadata) for key, metadata in FIELDS.items()] + [V15Explanation(m)]
     if m.evcc.configured:
         entities.append(V15EvccTargetSensor(m))
+    if m.costs.enabled:
+        entities.extend([
+            V15NetworkCostSensor(m, "peak"),
+            V15NetworkCostSensor(m, "charge"),
+            V15NetworkCostSensor(m, "potential"),
+        ])
     async_add_entities(entities)
 
 
@@ -93,6 +99,8 @@ class V15Explanation(SensorEntity):
                 "pv_start_planned_time": self.monitor.pv.planned_start,
                 "pv_start_planned_wh": self.monitor.pv.planned_wh,
                 "pv_start_last_attempt": self.monitor.pv.last_attempt,
+                "network_costs": self.monitor.costs.snapshot(__import__(
+                    "homeassistant.util.dt", fromlist=["now"]).now()) if self.monitor.costs.enabled else None,
                 "evcc_configured": self.monitor.evcc.configured,
                 "evcc_live_control": self.monitor.evcc.enabled,
                 "evcc_status": self.monitor.evcc.status,
@@ -130,6 +138,50 @@ class V15EvccTargetSensor(SensorEntity):
             "available_charge_w": self.monitor.evcc.available_w,
             "base_load_w": self.monitor.evcc.base_w,
             "last_action": self.monitor.evcc.last_action,
+        }
+
+    async def async_added_to_hass(self):
+        self.async_on_remove(self.monitor.subscribe(self.async_write_ha_state))
+
+
+class V15NetworkCostSensor(SensorEntity):
+    """Estimate for NE7; never claim it equals the billed network tariff."""
+    _attr_has_entity_name = False
+    _attr_icon = "mdi:currency-eur"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    METADATA = {
+        "peak": ("V15 Monatsspitze (lokal beobachtet)", "kW"),
+        "charge": ("V15 Leistungsentgelt (Modell, netto)", "EUR"),
+        "potential": ("V15 Leistungsentgelt bei Zielspitze (Differenz, Modell)", "EUR"),
+    }
+
+    def __init__(self, monitor, key):
+        self.monitor = monitor
+        self.key = key
+        self._attr_name, self._attr_native_unit_of_measurement = self.METADATA[key]
+        self._attr_unique_id = f"{monitor.entry.entry_id}_network_{key}"
+        self._attr_device_info = v15_device_info(monitor)
+
+    @property
+    def native_value(self):
+        from homeassistant.util import dt as dt_util
+        snapshot = self.monitor.costs.snapshot(dt_util.now())
+        return snapshot[{
+            "peak": "peak_kw",
+            "charge": "estimated_eur",
+            "potential": "hypothetical_reduction_eur",
+        }[self.key]]
+
+    @property
+    def extra_state_attributes(self):
+        from homeassistant.util import dt as dt_util
+        return {
+            **self.monitor.costs.snapshot(dt_util.now()),
+            **self.monitor.costs.metadata(),
+            "status": self.monitor.costs.last_status,
+            "estimate_only": True,
+            "not_an_invoice": True,
         }
 
     async def async_added_to_hass(self):
