@@ -26,6 +26,7 @@ from .restore_logic import power_headroom_ok, periods_satisfied
 from .evcc_control import V15EvccController
 from .home_connect_support import V15HomeConnectController
 from .pv_start import V15PvStartController
+from .network_cost_support import V15NetworkCostMonitor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ class V15Monitor:
         self.evcc = V15EvccController(self)
         self.hc = V15HomeConnectController(self)
         self.pv = V15PvStartController(self)
+        self.costs = V15NetworkCostMonitor(self)
 
     def calculate_current(self, now, watts):
         """Fresh quarter-hour budget for a late asynchronous evcc action."""
@@ -232,6 +234,11 @@ class V15Monitor:
             watts = self.read_power()
 
         if self.slot != slot:
+            if self.slot is not None and slot == self.slot + timedelta(minutes=15):
+                self.costs.complete_slot(
+                    self.slot, slot, self.energy_wh,
+                    self.coverage_s, demo=self.demo_data
+                )
             # Every fixed quarter-hour starts with fresh coverage and energy.
             self.slot = slot
             self.energy_wh = 0.0
@@ -323,6 +330,7 @@ class V15Monitor:
             "managed_home_connect_pauses": len(self.hc.owned),
             "last_action": self.last_action,
             "managed_off_count": len(self.managed_off),
+            "network_costs": self.costs.snapshot(now),
             "restore_candidate": restore_candidate,
             "restore_ready": restore_ready,
             "restore_status": restore_status,
@@ -452,6 +460,7 @@ class V15Monitor:
             self.notify()
 
     async def async_start(self):
+        await self.costs.async_load()
         self.listeners.append(async_track_state_change_event(
             self.hass, [self.grid_entity], self.update
         ))
