@@ -20,7 +20,8 @@
           "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)",
           "pv_start_configured": "Configure experimental PV-optimized Home Connect program start",
           "restore_live_control_on_restart": "Resume load shedding after restart (only if previously enabled)",
-          "restore_pv_start_on_restart": "Resume PV start control after restart (only if previously enabled)"
+          "restore_pv_start_on_restart": "Resume PV start control after restart (only if previously enabled)",
+          "network_costs_configured": "Configure optional Austrian grid capacity charge preview"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -37,7 +38,8 @@
           "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed.",
           "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization.",
           "restore_live_control_on_restart": "Remembers whether the “V15 Active Load Shedding” switch was on and re-enables it after a Home Assistant restart or integration reload. If it was off, it stays off. Actual shedding still requires valid meter data and sufficient measurement coverage. Loads shed before the restart are not automatically switched back on.",
-          "restore_pv_start_on_restart": "Remembers whether the “V15 PV Program Start” switch was on and re-enables this controller after restart or reload. This does not start a dishwasher program. Any previous one-shot authorization is invalid. For a new cycle, switch the start authorization helper OFF and then deliberately back ON after restart."
+          "restore_pv_start_on_restart": "Remembers whether the “V15 PV Program Start” switch was on and re-enables this controller after restart or reload. This does not start a dishwasher program. Any previous one-shot authorization is invalid. For a new cycle, switch the start authorization helper OFF and then deliberately back ON after restart.",
+          "network_costs_configured": "Informational only; does not change V15 switching. Model for grid level 7 using the nonbinding 2027 E-Control draft or manually entered rates. Not an invoice."
         }
       },
       "restore": {
@@ -103,6 +105,24 @@
           "pv_margin_watts": "Safety buffer in addition to estimated appliance power.",
           "pv_stable_seconds": "V15 headroom must remain sufficient for this many seconds."
         }
+      },
+      "network_costs": {
+        "title": "Austrian capacity charges (illustrative only)",
+        "description": "**Preview, not a bill.** Regional rates are from the nonbinding E-Control draft of 29 October 2026. The effective date varies by network. Only fully observed 15-minute intervals are counted; the grid operator's actual monthly peak may differ. Manual tariff rates apply only in manual mode.",
+        "data": {
+          "network_costs_mode": "Rate model (2027 draft or own prices)",
+          "network_costs_region": "Grid area (not merely federal state)",
+          "network_costs_first_cents": "Capacity rate up to 10 kW (cents/kW/month, own tariff only)",
+          "network_costs_higher_cents": "Capacity rate above 10 kW (cents/kW/month, own tariff only)",
+          "network_costs_minimum_kw": "Assumed minimum billable demand (kW)"
+        },
+        "data_description": {
+          "network_costs_mode": "2027 draft = nonbinding E-Control prices dated 29 October 2026. Manual = individual network tariff, only if such capacity charges apply.",
+          "network_costs_region": "Choose the electricity network area. Klagenfurt, Linz, Graz, Innsbruck and Kleinwalsertal are separate regions, rather than their federal states.",
+          "network_costs_first_cents": "Only for manual rates. Progressive price for the first 10 kW of billed demand.",
+          "network_costs_higher_cents": "Only for manual rates. Progressive price for demand exceeding 10 kW.",
+          "network_costs_minimum_kw": "Normally 2 kW for grid level 7 according to § 6 SNE-G-V; exceptions and transitional rules can apply. Adjust for an individual tariff."
+        }
       }
     },
     "error": {
@@ -116,7 +136,8 @@
       "pv_time_order": "Deadline must be after earliest start.",
       "pv_duration_invalid": "Duration must be a multiple of 15.",
       "pv_selected_invalid": "Invalid Home Connect selected-program entity.",
-      "pv_dishwasher_only": "Only Home Connect dishwashers are supported."
+      "pv_dishwasher_only": "Only Home Connect dishwashers are supported.",
+      "network_cost_missing_rates": "Both capacity rates must be greater than zero for a manual tariff."
     },
     "abort": {
       "already_configured": "V15 Lastmanagement is already configured."
@@ -142,7 +163,8 @@
           "home_connect_pause_buttons": "Home Connect PauseProgram buttons (experimental)",
           "pv_start_configured": "Configure experimental PV-optimized Home Connect program start",
           "restore_live_control_on_restart": "Resume load shedding after restart (only if previously enabled)",
-          "restore_pv_start_on_restart": "Resume PV start control after restart (only if previously enabled)"
+          "restore_pv_start_on_restart": "Resume PV start control after restart (only if previously enabled)",
+          "network_costs_configured": "Configure optional Austrian grid capacity charge preview"
         },
         "data_description": {
           "grid_sensor": "Current grid power sensor, in W or kW. Positive values should normally indicate grid import.",
@@ -159,7 +181,8 @@
           "home_connect_pause_buttons": "Select only non-critical devices offering PauseProgram. ResumeProgram and state confirmation are required; cloud commands may be delayed.",
           "pv_start_configured": "Independent optional start controller for Home Connect dishwashers only. Disabled after restart, requires one-shot authorization.",
           "restore_live_control_on_restart": "Remembers whether the “V15 Active Load Shedding” switch was on and re-enables it after a Home Assistant restart or integration reload. If it was off, it stays off. Actual shedding still requires valid meter data and sufficient measurement coverage. Loads shed before the restart are not automatically switched back on.",
-          "restore_pv_start_on_restart": "Remembers whether the “V15 PV Program Start” switch was on and re-enables this controller after restart or reload. This does not start a dishwasher program. Any previous one-shot authorization is invalid. For a new cycle, switch the start authorization helper OFF and then deliberately back ON after restart."
+          "restore_pv_start_on_restart": "Remembers whether the “V15 PV Program Start” switch was on and re-enables this controller after restart or reload. This does not start a dishwasher program. Any previous one-shot authorization is invalid. For a new cycle, switch the start authorization helper OFF and then deliberately back ON after restart.",
+          "network_costs_configured": "Informational only; does not change V15 switching. Model for grid level 7 using the nonbinding 2027 E-Control draft or manually entered rates. Not an invoice."
         }
       },
       "restore": {
@@ -225,6 +248,24 @@
           "pv_margin_watts": "Safety buffer in addition to estimated appliance power.",
           "pv_stable_seconds": "V15 headroom must remain sufficient for this many seconds."
         }
+      },
+      "network_costs": {
+        "title": "Austrian capacity charges (illustrative only)",
+        "description": "**Preview, not a bill.** Regional rates are from the nonbinding E-Control draft of 29 October 2026. The effective date varies by network. Only fully observed 15-minute intervals are counted; the grid operator's actual monthly peak may differ. Manual tariff rates apply only in manual mode.",
+        "data": {
+          "network_costs_mode": "Rate model (2027 draft or own prices)",
+          "network_costs_region": "Grid area (not merely federal state)",
+          "network_costs_first_cents": "Capacity rate up to 10 kW (cents/kW/month, own tariff only)",
+          "network_costs_higher_cents": "Capacity rate above 10 kW (cents/kW/month, own tariff only)",
+          "network_costs_minimum_kw": "Assumed minimum billable demand (kW)"
+        },
+        "data_description": {
+          "network_costs_mode": "2027 draft = nonbinding E-Control prices dated 29 October 2026. Manual = individual network tariff, only if such capacity charges apply.",
+          "network_costs_region": "Choose the electricity network area. Klagenfurt, Linz, Graz, Innsbruck and Kleinwalsertal are separate regions, rather than their federal states.",
+          "network_costs_first_cents": "Only for manual rates. Progressive price for the first 10 kW of billed demand.",
+          "network_costs_higher_cents": "Only for manual rates. Progressive price for demand exceeding 10 kW.",
+          "network_costs_minimum_kw": "Normally 2 kW for grid level 7 according to § 6 SNE-G-V; exceptions and transitional rules can apply. Adjust for an individual tariff."
+        }
       }
     },
     "error": {
@@ -238,7 +279,8 @@
       "pv_time_order": "Deadline must be after earliest start.",
       "pv_duration_invalid": "Duration must be a multiple of 15.",
       "pv_selected_invalid": "Invalid Home Connect selected-program entity.",
-      "pv_dishwasher_only": "Only Home Connect dishwashers are supported."
+      "pv_dishwasher_only": "Only Home Connect dishwashers are supported.",
+      "network_cost_missing_rates": "Both capacity rates must be greater than zero for a manual tariff."
     }
   }
 }
