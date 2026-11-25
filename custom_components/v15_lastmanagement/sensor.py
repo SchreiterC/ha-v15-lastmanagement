@@ -1,6 +1,7 @@
 """Measurement and explanation entities."""
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.const import UnitOfPower, UnitOfEnergy
+from homeassistant.util import dt as dt_util
 from .const import DOMAIN
 from .device import v15_device_info
 
@@ -99,8 +100,7 @@ class V15Explanation(SensorEntity):
                 "pv_start_planned_time": self.monitor.pv.planned_start,
                 "pv_start_planned_wh": self.monitor.pv.planned_wh,
                 "pv_start_last_attempt": self.monitor.pv.last_attempt,
-                "network_costs": self.monitor.costs.snapshot(__import__(
-                    "homeassistant.util.dt", fromlist=["now"]).now()) if self.monitor.costs.enabled else None,
+                "network_costs": self.monitor.costs.snapshot(dt_util.now()) if self.monitor.costs.enabled else None,
                 "evcc_configured": self.monitor.evcc.configured,
                 "evcc_live_control": self.monitor.evcc.enabled,
                 "evcc_status": self.monitor.evcc.status,
