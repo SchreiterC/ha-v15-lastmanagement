@@ -19,6 +19,7 @@ from custom_components.v15_lastmanagement.const import (
     CONF_EVCC_STABLE_S, CONF_EVCC_STEP_S, CONF_EVCC_ALLOW_PAUSE,
     CONF_RESTART_LIVE,
     CONF_RESTART_PV, CONF_PV_ENABLED, CONF_PV_SELECTED, CONF_PV_ARM,
+    CONF_COST_CONFIGURED, CONF_COST_REGION, CONF_COST_MODE,
     CONF_PV_FORECAST, CONF_PV_EARLIEST, CONF_PV_DEADLINE,
     CONF_PV_DURATION, CONF_PV_MIN_WH, CONF_PV_WATTS, CONF_PV_MARGIN,
     CONF_PV_STABLE,
@@ -275,6 +276,43 @@ async def test_integration_user_flow_shows_evcc_settings(hass: HomeAssistant):
     assert CONF_EVCC_CURRENT in fields
     assert CONF_EVCC_MODE in fields
     assert CONF_EVCC_POWER in fields
+
+
+async def test_network_tariff_sensors_are_opt_in_and_informational(hass: HomeAssistant):
+    """An actual HA config entry exposes three cost-preview entities."""
+    from datetime import timedelta
+    from homeassistant.util import dt as dt_util
+    set_virtual_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="V15 Tariff Lab", unique_id="v15_main",
+        data=BASE,
+        options={
+            CONF_COST_CONFIGURED: True,
+            CONF_COST_MODE: "draft2027",
+            CONF_COST_REGION: "Burgenland",
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    peak = entity_id(hass, entry, "sensor", "network_peak")
+    charge = entity_id(hass, entry, "sensor", "network_charge")
+    target = entity_id(hass, entry, "sensor", "network_potential")
+    assert hass.states.get(peak).state == "unknown"
+    monitor = hass.data[DOMAIN][entry.entry_id]
+    now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    monitor.costs.complete_slot(
+        now, now + timedelta(minutes=15), 1250, 900
+    )
+    monitor.notify()
+    await hass.async_block_till_done()
+    assert float(hass.states.get(peak).state) == 5.0
+    assert float(hass.states.get(charge).state) == 17.0
+    assert float(hass.states.get(target).state) == 0.0
+    attributes = hass.states.get(charge).attributes
+    assert attributes["not_an_invoice"] is True
+    assert "Entwurf" in attributes["legal_status"]
+    assert await hass.config_entries.async_unload(entry.entry_id)
 
 
 async def test_no_hardware_connection_after_unload(hass: HomeAssistant, v15):
