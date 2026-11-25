@@ -1,5 +1,5 @@
 """Measurement and explanation entities."""
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorEntity, SensorStateClass, SensorDeviceClass
 from homeassistant.const import UnitOfPower, UnitOfEnergy
 from homeassistant.util import dt as dt_util
 from .const import DOMAIN
@@ -160,6 +160,10 @@ class V15NetworkCostSensor(SensorEntity):
         self.monitor = monitor
         self.key = key
         self._attr_name, self._attr_native_unit_of_measurement = self.METADATA[key]
+        self._attr_device_class = (
+            SensorDeviceClass.POWER if key == "peak"
+            else SensorDeviceClass.MONETARY
+        )
         self._attr_unique_id = f"{monitor.entry.entry_id}_network_{key}"
         self._attr_device_info = v15_device_info(monitor)
 
