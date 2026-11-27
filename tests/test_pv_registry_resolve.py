@@ -63,6 +63,16 @@ class TestPvRegistryResolve(unittest.TestCase):
         self.assertEqual(self.pv.connectivity, "binary_sensor.neff_online")
         self.assertEqual(self.pv.device_id, "device-a")
 
+    def test_finish_time_optional_and_same_device(self):
+        finish = record("sensor.neff_finish", "abc-BSH.Common.Option.RemainingProgramTime",
+                        translation="program_finish_time", device_class="timestamp")
+        self.pv.resolve(FakeRegistry(self.entries + [finish]))
+        self.assertEqual(self.pv.finish_time, finish.entity_id)
+        other = SimpleNamespace(**{**vars(finish), "device_id": "device-b"})
+        self.pv.resolve(FakeRegistry(self.entries + [other]))
+        self.assertIsNone(self.pv.finish_time)
+        self.assertEqual(self.pv.missing_entities, [])
+
     def test_registry_translation_fallback_for_known_device(self):
         changed = []
         for e in self.entries:
