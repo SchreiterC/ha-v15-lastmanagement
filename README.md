@@ -77,9 +77,9 @@ options, manually enable the desired live switches and then reload or restart
 Home Assistant. Check that the intended live switches recover, and verify
 that the old dishwasher authorization cannot trigger a start.
 
-## Development preview: PV-optimized Home Connect dishwasher start (0.3.7b2 / planned 0.3.7)
+## Development preview: PV-optimized Home Connect dishwasher start (0.3.7b3 / planned 0.3.7)
 
-**Unreleased / experimental beta 0.3.7b1:** available only on `feature/pv-home-connect-start`. Use this beta version to verify that the Marketplace installed the newest branch files, including `translations/de.json`.
+**Unreleased / experimental beta 0.3.7b3:** development branch `feature/pv-program-timestamps`.
 Version 0.3.6 and its existing switch / evcc / pause-resume behavior remain unchanged.
 No guaranteed compliance with utility billing demand peaks.
 
@@ -120,6 +120,42 @@ Missing or stale V15 readings, insufficient measurement coverage, unavailable
 Home Connect sensors, unconfirmed door/remote states and demo/simulation modes
 block all real starts. The new feature is disabled on restart or reload; the
 core V15 load management remains unchanged.
+
+### Program timing / Programmzeiten (0.3.7b3)
+
+Three read-only entities are added when PV start is configured:
+**V15 PV-Programmstart geplant**, **V15 PV-Programmende erwartet** and
+**V15 PV-Programmstatus**. The end timestamp uses the configured duration
+before starting, and the Home Connect finish timestamp during a running program.
+Select an optional tomorrow forecast sensor with the same `wh_period_15m`
+attribute. After today's deadline plus 15 minutes, tomorrow is previewed;
+without sufficient PV data the configured deadline is used. All estimates
+remain conditional on appliance readiness, authorization and V15 headroom.
+No control policy or restart authorization is changed.
+
+Dashboard header example (verify entity IDs on your installation):
+
+```jinja
+{% set status = states('sensor.v15_lastmanagement_v15_pv_programmstatus') %}
+{% set end = as_datetime(states('sensor.v15_lastmanagement_v15_pv_programmende_erwartet'), none) %}
+{% if end is not none %}
+**Geschirrspüler fertig: ca. {{ as_local(end).strftime('%d.%m., %H:%M') }} Uhr**
+{% elif status == 'running' %}
+**Geschirrspüler läuft – Endzeit wird ermittelt**
+{% elif status == 'paused' %}
+**Geschirrspüler pausiert**
+{% elif status == 'starting' %}
+**Geschirrspüler: Startbestätigung ausständig**
+{% elif status == 'finished' %}
+**Geschirrspüler fertig**
+{% elif status in ['not_ready', 'fresh_arm_required', 'disabled', 'simulation'] %}
+**Geschirrspüler: Freigabe oder Startbereitschaft prüfen**
+{% endif %}
+```
+
+The timestamp attribute `source` is `pv_forecast`, `deadline` or
+`home_connect`. Missing or paused finish times remain unknown.
+
 
 
 
