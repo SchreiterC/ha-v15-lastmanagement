@@ -81,6 +81,36 @@ class TestPvStartController(unittest.IsolatedAsyncioTestCase):
         w = self.monitor.read_power()
         return w, self.monitor.calculate_current(clock.now, w)
 
+    async def test_timing_is_read_only_and_uses_cloud_finish(self):
+        p = self.monitor.pv
+        p.update_timing(clock.now)
+        self.assertEqual(p.timing["status"], "waiting_conditions")
+        self.assertEqual(p.timing["source"], "pv_forecast")
+        self.assertEqual(p.timing["end"] - p.timing["start"], timedelta(hours=1))
+        self.hass.states[ARM] = FakeState("off")
+        self.hass.states[OPERATION] = FakeState("run")
+        p.finish_time = "sensor.dishwasher_finish"
+        finish = clock.now + timedelta(minutes=50)
+        self.hass.states[p.finish_time] = FakeState(finish.isoformat())
+        p.update_timing(clock.now)
+        self.assertEqual(p.timing["end"], finish)
+        self.assertEqual(p.timing["source"], "home_connect")
+        self.hass.states[p.finish_time] = FakeState("unavailable")
+        p.update_timing(clock.now)
+        self.assertIsNone(p.timing["end"])
+        self.hass.states[OPERATION] = FakeState("pause")
+        p.update_timing(clock.now)
+        self.assertEqual(p.timing["status"], "paused")
+        self.assertFalse(self.calls)
+
+    async def test_timing_requires_fresh_arm(self):
+        p = self.monitor.pv
+        p.restore_live_enable()
+        p.update_timing(clock.now)
+        self.assertEqual(p.timing["status"], "fresh_arm_required")
+        self.assertIsNone(p.timing["end"])
+        self.assertFalse(self.calls)
+
     async def test_one_shot_arm_consumed_and_confirmed(self):
         p = self.monitor.pv
         p.stable_since = clock.now - timedelta(seconds=100)
