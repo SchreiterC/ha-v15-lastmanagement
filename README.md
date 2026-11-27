@@ -1,10 +1,10 @@
-> **Version 0.3.6:** Home Connect Pause/Resume is an experimental, opt-in feature. Existing evcc support from v0.3.5 remains available. Use only with noncritical, pause-capable appliances and test in dry run first. The Home Connect cloud cannot guarantee real-time load shedding. Only a V15-confirmed pause may be resumed automatically; restarts clear ownership. Configure a conservative max resumption wattage for every selected PauseProgram button. No StopProgram and no StartProgram calls.
+> **Version 0.3.7:** Die bewährte Lastabschaltung und die bestehenden Home-Connect-/evcc-Funktionen bleiben verfügbar. Neu: optionaler, experimenteller PV-optimierter Geschirrspülerstart, optionale sichere Fortsetzung der Steuerung nach einem Neustart und rein informatives österreichisches Netzleistungsentgelt-Modell auf Basis eines unverbindlichen 2027er Entwurfs. Die experimentellen Funktionen sind nicht für garantierte Echtzeit-Lastabschaltungen geeignet.
 
 # V15 Lastmanagement für Home Assistant
 
-## Austrian grid-capacity charge preview (optional, beta)
+## Austrian grid-capacity charge preview (optional, experimental)
 
-From the next V15 beta, users can enable **Netz-Leistungsentgelte (unverbindliches
+From V15 0.3.7, users can enable **Netz-Leistungsentgelte (unverbindliches
 Modell)** in the V15 options. Supported: the 14 Austrian electricity network
 areas (nine federal-state network areas plus **Klagenfurt, Linz, Graz,
 Innsbruck and Kleinwalsertal**). Not every grid area is identical to the
@@ -77,10 +77,10 @@ options, manually enable the desired live switches and then reload or restart
 Home Assistant. Check that the intended live switches recover, and verify
 that the old dishwasher authorization cannot trigger a start.
 
-## Development preview: PV-optimized Home Connect dishwasher start (0.3.7b2 / planned 0.3.7)
+## PV-optimized Home Connect dishwasher start (experimental in 0.3.7)
 
-**Unreleased / experimental beta 0.3.7b1:** available only on `feature/pv-home-connect-start`. Use this beta version to verify that the Marketplace installed the newest branch files, including `translations/de.json`.
-Version 0.3.6 and its existing switch / evcc / pause-resume behavior remain unchanged.
+**Experimental, opt-in in 0.3.7.** The live switch requires separate authorization, and existing automations for the same dishwasher must be disabled to avoid competing start commands.
+Existing load-shedding, evcc and Home Connect pause/resume behavior is retained.
 No guaranteed compliance with utility billing demand peaks.
 
 This opt-in extension uses the existing Home Connect integration and a user-created
