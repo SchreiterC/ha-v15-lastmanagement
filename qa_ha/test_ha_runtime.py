@@ -17,6 +17,12 @@ from custom_components.v15_lastmanagement.const import (
     CONF_EVCC_POWER, CONF_EVCC_PHASES, CONF_EVCC_FIXED_PHASES,
     CONF_EVCC_MIN_A, CONF_EVCC_MAX_A, CONF_EVCC_VOLTAGE, CONF_EVCC_MARGIN_W,
     CONF_EVCC_STABLE_S, CONF_EVCC_STEP_S, CONF_EVCC_ALLOW_PAUSE,
+    CONF_RESTART_LIVE,
+    CONF_RESTART_PV, CONF_PV_ENABLED, CONF_PV_SELECTED, CONF_PV_ARM,
+    CONF_COST_CONFIGURED, CONF_COST_REGION, CONF_COST_MODE,
+    CONF_PV_FORECAST, CONF_PV_EARLIEST, CONF_PV_DEADLINE,
+    CONF_PV_DURATION, CONF_PV_MIN_WH, CONF_PV_WATTS, CONF_PV_MARGIN,
+    CONF_PV_STABLE,
 )
 
 GRID = "sensor.v15_lab_grid"
@@ -110,6 +116,133 @@ async def test_explicit_service_enable_then_reload_disables(hass: HomeAssistant,
     assert hass.states.get(switch_id).state == "off"
 
 
+async def test_opt_in_live_shedding_restored_after_reload(hass: HomeAssistant):
+    """Real HA RestoreEntity must preserve only explicit consented mode."""
+    set_virtual_states(hass)
+    load = "switch.v15_dummy_load"
+    hass.states.async_set(load, "on")
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="V15 Restore Lab", unique_id="v15_main",
+        data={**BASE, CONF_LOADS: [load]},
+        options={CONF_RESTART_LIVE: True},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    live = entity_id(hass, entry, "switch", "live_control")
+    simulation = entity_id(hass, entry, "switch", "simulation")
+    assert hass.states.get(live).state == "off"
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": live}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(live).state == "on"
+    assert hass.states.get(simulation).state == "off"
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(live).state == "on"
+    assert hass.states.get(simulation).state == "off"
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_opt_in_pv_live_restores_without_reusing_old_arm(
+    hass: HomeAssistant, monkeypatch
+):
+    """PV live switch restored, but ON arm from previous session invalid."""
+    from custom_components.v15_lastmanagement.pv_start import V15PvStartController
+    from datetime import datetime, timedelta, timezone
+
+    arm = "input_boolean.v15_test_arm"
+    selected = "select.v15_test_dishwasher"
+    op = "sensor.v15_test_operation"
+    door = "sensor.v15_test_door"
+    remote = "binary_sensor.v15_test_remote"
+    remote_start = "binary_sensor.v15_test_remote_start"
+    online = "binary_sensor.v15_test_online"
+    forecast = "sensor.v15_test_pv"
+
+    def fake_resolve(self):
+        self.selected = selected
+        self.operation = op
+        self.door = door
+        self.remote = remote
+        self.remote_start = remote_start
+        self.connectivity = online
+        self.device_id = "virtual-home-connect-device"
+        self.missing_entities = []
+
+    monkeypatch.setattr(V15PvStartController, "resolve", fake_resolve)
+    set_virtual_states(hass)
+    hass.states.async_set(arm, "on")
+    hass.states.async_set(selected, "dishcare_dishwasher_program_eco_50")
+    hass.states.async_set(op, "ready")
+    hass.states.async_set(door, "closed")
+    hass.states.async_set(remote, "on")
+    hass.states.async_set(remote_start, "on")
+    hass.states.async_set(online, "on")
+    hass.states.async_set(forecast, "0", {"wh_period_15m": {}})
+
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="PV Restart Lab", unique_id="v15_main",
+        data={**BASE,
+              CONF_PV_ENABLED: True,
+              CONF_PV_SELECTED: selected,
+              CONF_PV_ARM: arm,
+              CONF_PV_FORECAST: forecast,
+              CONF_PV_EARLIEST: "09:00",
+              CONF_PV_DEADLINE: "15:00",
+              CONF_PV_DURATION: 240,
+              CONF_PV_MIN_WH: 1500,
+              CONF_PV_WATTS: 2500,
+              CONF_PV_MARGIN: 300,
+              CONF_PV_STABLE: 90},
+        options={CONF_RESTART_PV: True},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    pv = entity_id(hass, entry, "switch", "pv_start_live")
+    assert hass.states.get(pv).state == "off"
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": pv}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(pv).state == "on"
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(pv).state == "on"
+    monitor = hass.data[DOMAIN][entry.entry_id]
+    assert monitor.pv.require_fresh_arm is True
+    assert monitor.pv.arm_seen_off is False
+    assert monitor.pv._fresh_arm_ready() is False
+    assert monitor.pv.require_fresh_arm is True
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_default_live_shedding_remains_off_after_reload(hass: HomeAssistant):
+    """Existing users are not changed by new optional recovery settings."""
+    set_virtual_states(hass)
+    load = "switch.v15_dummy_load"
+    hass.states.async_set(load, "on")
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="V15 Default Lab", unique_id="v15_main",
+        data={**BASE, CONF_LOADS: [load]}, options={},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    live = entity_id(hass, entry, "switch", "live_control")
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": live}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(live).state == "on"
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(live).state == "off"
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
 async def test_no_evcc_commands_without_opt_in(hass: HomeAssistant, v15):
     """Sensor events alone must never issue charger commands."""
     calls = []
@@ -143,6 +276,43 @@ async def test_integration_user_flow_shows_evcc_settings(hass: HomeAssistant):
     assert CONF_EVCC_CURRENT in fields
     assert CONF_EVCC_MODE in fields
     assert CONF_EVCC_POWER in fields
+
+
+async def test_network_tariff_sensors_are_opt_in_and_informational(hass: HomeAssistant):
+    """An actual HA config entry exposes three cost-preview entities."""
+    from datetime import timedelta
+    from homeassistant.util import dt as dt_util
+    set_virtual_states(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="V15 Tariff Lab", unique_id="v15_main",
+        data=BASE,
+        options={
+            CONF_COST_CONFIGURED: True,
+            CONF_COST_MODE: "draft2027",
+            CONF_COST_REGION: "Burgenland",
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    peak = entity_id(hass, entry, "sensor", "network_peak")
+    charge = entity_id(hass, entry, "sensor", "network_charge")
+    target = entity_id(hass, entry, "sensor", "network_potential")
+    assert hass.states.get(peak).state == "unknown"
+    monitor = hass.data[DOMAIN][entry.entry_id]
+    now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+    monitor.costs.complete_slot(
+        now, now + timedelta(minutes=15), 1250, 900
+    )
+    monitor.notify()
+    await hass.async_block_till_done()
+    assert float(hass.states.get(peak).state) == 5.0
+    assert float(hass.states.get(charge).state) == 17.0
+    assert float(hass.states.get(target).state) == 0.0
+    attributes = hass.states.get(charge).attributes
+    assert attributes["not_an_invoice"] is True
+    assert "Entwurf" in attributes["legal_status"]
+    assert await hass.config_entries.async_unload(entry.entry_id)
 
 
 async def test_no_hardware_connection_after_unload(hass: HomeAssistant, v15):

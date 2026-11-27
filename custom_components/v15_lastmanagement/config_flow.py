@@ -18,8 +18,17 @@ from .const import (
     DEFAULT_EVCC_VOLTAGE, DEFAULT_EVCC_MARGIN_W, DEFAULT_EVCC_STABLE_S,
     DEFAULT_EVCC_STEP_S,
     CONF_HC_PAUSE, CONF_HC_POWERS,
+    CONF_PV_ENABLED, CONF_PV_SELECTED, CONF_PV_ARM, CONF_PV_FORECAST,
+    CONF_PV_EARLIEST, CONF_PV_DEADLINE, CONF_PV_DURATION,
+    CONF_PV_MIN_WH, CONF_PV_WATTS, CONF_PV_MARGIN, CONF_PV_STABLE,
+    CONF_RESTART_LIVE, CONF_RESTART_PV,
+    CONF_COST_CONFIGURED, CONF_COST_MODE, CONF_COST_REGION,
+    CONF_COST_FIRST, CONF_COST_HIGHER, CONF_COST_MINIMUM,
 )
 from .home_connect_support import selectable_pause_buttons, validate_pause_buttons
+from .pv_start_logic import parse_clock
+from .network_costs import DRAFT_2027_NE7
+from homeassistant.helpers import entity_registry as er
 
 EVCC_OPTION_KEYS = (
     CONF_EVCC_CURRENT, CONF_EVCC_MODE, CONF_EVCC_POWER, CONF_EVCC_PHASES,
@@ -59,6 +68,14 @@ def schema(values=None, hass=None):
             vol.All(vol.Coerce(float), vol.Range(min=0, max=5000)),
         vol.Required(CONF_EVCC_CONFIGURED,
                      default=values.get(CONF_EVCC_CONFIGURED, False)): bool,
+        vol.Required(CONF_PV_ENABLED,
+                     default=values.get(CONF_PV_ENABLED, False)): bool,
+        vol.Required(CONF_RESTART_LIVE,
+                     default=values.get(CONF_RESTART_LIVE, False)): bool,
+        vol.Required(CONF_RESTART_PV,
+                     default=values.get(CONF_RESTART_PV, False)): bool,
+        vol.Required(CONF_COST_CONFIGURED,
+                     default=values.get(CONF_COST_CONFIGURED, False)): bool,
     })
 
 
@@ -117,6 +134,95 @@ def evcc_schema(previous=None):
     })
 
 
+
+def pv_start_schema(previous=None, hass=None):
+    """Optional dishwasher-only solar start setup."""
+    v = previous or {}
+    available = []
+    if hass is not None:
+        registry = er.async_get(hass)
+        available = sorted(
+            e.entity_id for e in registry.entities.values()
+            if e.platform == "home_connect" and e.disabled_by is None
+            and e.entity_id.startswith("select.")
+            and e.unique_id.endswith("-BSH.Common.Root.SelectedProgram")
+        )
+    return vol.Schema({
+        vol.Required(CONF_PV_SELECTED, default=v.get(CONF_PV_SELECTED, vol.UNDEFINED)):
+            EntitySelector(EntitySelectorConfig(domain="select", include_entities=available)),
+        vol.Required(CONF_PV_ARM, default=v.get(CONF_PV_ARM, vol.UNDEFINED)):
+            EntitySelector(EntitySelectorConfig(domain="input_boolean")),
+        vol.Required(CONF_PV_FORECAST, default=v.get(CONF_PV_FORECAST, vol.UNDEFINED)):
+            EntitySelector(EntitySelectorConfig(domain="sensor")),
+        vol.Required(CONF_PV_EARLIEST, default=v.get(CONF_PV_EARLIEST, "09:00")): str,
+        vol.Required(CONF_PV_DEADLINE, default=v.get(CONF_PV_DEADLINE, "15:00")): str,
+        vol.Required(CONF_PV_DURATION, default=v.get(CONF_PV_DURATION, 240)):
+            vol.All(vol.Coerce(int), vol.Range(min=15, max=720)),
+        vol.Required(CONF_PV_MIN_WH, default=v.get(CONF_PV_MIN_WH, 1500)):
+            vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+        vol.Required(CONF_PV_WATTS, default=v.get(CONF_PV_WATTS, 2500)):
+            vol.All(vol.Coerce(float), vol.Range(min=10, max=25000)),
+        vol.Required(CONF_PV_MARGIN, default=v.get(CONF_PV_MARGIN, 300)):
+            vol.All(vol.Coerce(float), vol.Range(min=0, max=5000)),
+        vol.Required(CONF_PV_STABLE, default=v.get(CONF_PV_STABLE, 90)):
+            vol.All(vol.Coerce(int), vol.Range(min=30, max=900)),
+    })
+
+
+def network_cost_schema(previous=None):
+    """Purely informational fees, on a separate optional setup page."""
+    v = previous or {}
+    return vol.Schema({
+        vol.Required(CONF_COST_MODE, default=v.get(CONF_COST_MODE, "draft2027")):
+            vol.In(["draft2027", "manual"]),
+        vol.Required(CONF_COST_REGION,
+                     default=v.get(CONF_COST_REGION, "Burgenland")):
+            vol.In(sorted(DRAFT_2027_NE7)),
+        vol.Required(CONF_COST_FIRST,
+                     default=v.get(CONF_COST_FIRST, 0)):
+            vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+        vol.Required(CONF_COST_HIGHER,
+                     default=v.get(CONF_COST_HIGHER, 0)):
+            vol.All(vol.Coerce(float), vol.Range(min=0, max=100000)),
+        vol.Required(CONF_COST_MINIMUM,
+                     default=v.get(CONF_COST_MINIMUM, 2)):
+            vol.All(vol.Coerce(float), vol.Range(min=0, max=100)),
+    })
+
+
+def network_cost_error(data):
+    if data[CONF_COST_MODE] == "manual" and (
+        not data[CONF_COST_FIRST] or not data[CONF_COST_HIGHER]
+    ):
+        return "network_cost_missing_rates"
+    return None
+
+
+def pv_start_error(data, hass):
+    try:
+        start = parse_clock(data[CONF_PV_EARLIEST])
+        deadline = parse_clock(data[CONF_PV_DEADLINE])
+    except ValueError:
+        return "pv_time_invalid"
+    if start >= deadline:
+        return "pv_time_order"
+    if data[CONF_PV_DURATION] % 15:
+        return "pv_duration_invalid"
+    registry = er.async_get(hass)
+    selected = registry.async_get(data[CONF_PV_SELECTED])
+    if (selected is None or selected.platform != "home_connect"
+            or selected.disabled_by is not None
+            or not selected.unique_id.endswith("-BSH.Common.Root.SelectedProgram")):
+        return "pv_selected_invalid"
+    options = hass.states.get(data[CONF_PV_SELECTED])
+    if options is None or not any(
+        str(value).startswith("dishcare_dishwasher_program_")
+        for value in options.attributes.get("options", [])
+    ):
+        return "pv_dishwasher_only"
+    return None
+
+
 def validation_error(data, hass=None):
     if data[CONF_RESERVE] >= data[CONF_LIMIT]:
         return "reserve_too_high"
@@ -155,6 +261,19 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _continue_setup(self):
         if self._pending_data.get(CONF_EVCC_CONFIGURED):
             return await self.async_step_evcc()
+        return await self._finish_setup()
+
+    async def _finish_setup(self):
+        if self._pending_data.get(CONF_PV_ENABLED):
+            return await self.async_step_pv_start()
+        return await self._finish_cost_setup()
+
+    async def _finish_cost_setup(self):
+        if self._pending_data.get(CONF_COST_CONFIGURED):
+            return await self.async_step_network_costs()
+        return await self._create_setup_entry()
+
+    async def _create_setup_entry(self):
         await self.async_set_unique_id("v15_main")
         self._abort_if_unique_id_configured()
         return self.async_create_entry(title="V15 Lastmanagement", data=self._pending_data)
@@ -183,11 +302,36 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             error = evcc_error(user_input)
             if error is None:
                 self._pending_data.update(user_input)
-                await self.async_set_unique_id("v15_main")
-                self._abort_if_unique_id_configured()
-                return self.async_create_entry(title="V15 Lastmanagement", data=self._pending_data)
+                return await self._finish_setup()
             errors["base"] = error
         return self.async_show_form(step_id="evcc", data_schema=evcc_schema(user_input), errors=errors)
+
+    async def async_step_pv_start(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            error = pv_start_error(user_input, self.hass)
+            if error is None:
+                self._pending_data.update(user_input)
+                return await self._finish_cost_setup()
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="pv_start", data_schema=pv_start_schema(user_input, self.hass),
+            errors=errors,
+        )
+
+    async def async_step_network_costs(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            error = network_cost_error(user_input)
+            if error is None:
+                self._pending_data.update(user_input)
+                return await self._create_setup_entry()
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="network_costs",
+            data_schema=network_cost_schema(user_input),
+            errors=errors,
+        )
 
     @staticmethod
     def async_get_options_flow(config_entry):
@@ -216,6 +360,16 @@ class V15OptionsFlow(config_entries.OptionsFlow):
     async def _continue_options(self):
         if self._pending_data.get(CONF_EVCC_CONFIGURED):
             return await self.async_step_evcc()
+        return await self._finish_options()
+
+    async def _finish_options(self):
+        if self._pending_data.get(CONF_PV_ENABLED):
+            return await self.async_step_pv_start()
+        return await self._finish_cost_options()
+
+    async def _finish_cost_options(self):
+        if self._pending_data.get(CONF_COST_CONFIGURED):
+            return await self.async_step_network_costs()
         return self.async_create_entry(title="", data=self._pending_data)
 
     async def async_step_restore(self, user_input=None):
@@ -244,9 +398,37 @@ class V15OptionsFlow(config_entries.OptionsFlow):
             error = evcc_error(user_input)
             if error is None:
                 self._pending_data.update(user_input)
-                return self.async_create_entry(title="", data=self._pending_data)
+                return await self._finish_options()
             errors["base"] = error
         return self.async_show_form(
             step_id="evcc", data_schema=evcc_schema(user_input or self._previous),
+            errors=errors,
+        )
+
+    async def async_step_pv_start(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            error = pv_start_error(user_input, self.hass)
+            if error is None:
+                self._pending_data.update(user_input)
+                return await self._finish_cost_options()
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="pv_start",
+            data_schema=pv_start_schema(user_input or self._previous, self.hass),
+            errors=errors,
+        )
+
+    async def async_step_network_costs(self, user_input=None):
+        errors = {}
+        if user_input is not None:
+            error = network_cost_error(user_input)
+            if error is None:
+                self._pending_data.update(user_input)
+                return self.async_create_entry(title="", data=self._pending_data)
+            errors["base"] = error
+        return self.async_show_form(
+            step_id="network_costs",
+            data_schema=network_cost_schema(user_input or self._previous),
             errors=errors,
         )

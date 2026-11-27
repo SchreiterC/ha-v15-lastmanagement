@@ -1,6 +1,127 @@
-> **Version 0.3.6:** Home Connect Pause/Resume is an experimental, opt-in feature. Existing evcc support from v0.3.5 remains available. Use only with noncritical, pause-capable appliances and test in dry run first. The Home Connect cloud cannot guarantee real-time load shedding. Only a V15-confirmed pause may be resumed automatically; restarts clear ownership. Configure a conservative max resumption wattage for every selected PauseProgram button. No StopProgram and no StartProgram calls.
+> **Version 0.3.7:** Die bewährte Lastabschaltung und die bestehenden Home-Connect-/evcc-Funktionen bleiben verfügbar. Neu: optionaler, experimenteller PV-optimierter Geschirrspülerstart, optionale sichere Fortsetzung der Steuerung nach einem Neustart und rein informatives österreichisches Netzleistungsentgelt-Modell auf Basis eines unverbindlichen 2027er Entwurfs. Die experimentellen Funktionen sind nicht für garantierte Echtzeit-Lastabschaltungen geeignet.
 
 # V15 Lastmanagement für Home Assistant
+
+## Austrian grid-capacity charge preview (optional, experimental)
+
+From V15 0.3.7, users can enable **Netz-Leistungsentgelte (unverbindliches
+Modell)** in the V15 options. Supported: the 14 Austrian electricity network
+areas (nine federal-state network areas plus **Klagenfurt, Linz, Graz,
+Innsbruck and Kleinwalsertal**). Not every grid area is identical to the
+administrative boundaries of its federal state.
+
+Choose the source of the estimate:
+
+- **Draft 2027**: region-specific rates for grid level 7 from the E-Control
+  consultation proposal published **29 October 2026**. These are **not
+  enacted tariffs** and may be modified. The operator-dependent
+  tariff-transition date is **not known automatically**, and the proposed
+  progressive charges must not be presented as payable in 2026 or as the
+  customer's actual 2027 network bill.
+- **Own tariff**: enter two monthly capacity rates (cents/kW/month for the
+  first 10 kW and above 10 kW), plus a minimum billed kW. The default
+  2 kW minimum follows §6 SNE-G-V for regular grid-level-7 connections;
+  different contracts, mini-connections and transition rules can differ.
+
+The optional read-only sensors are:
+
+- **V15 Monatsspitze (lokal beobachtet)**, kW, maximum of *completed*
+  and sufficiently covered 15-minute local grid-import periods.
+- **V15 Leistungsentgelt (Modell, netto)**, EUR/month, based on this
+  observed maximum and the chosen draft/manual rate.
+- **V15 Leistungsentgelt bei Zielspitze (Differenz, Modell)**, EUR/month:
+  a **hypothetical** comparison of observed peak versus V15 target, **not
+  realized savings**. No claim is made that V15 achieved the target.
+
+A complete interval is accepted only with at least 855 of 900 measured
+seconds (95% coverage), and the highest observed monthly 15-minute
+average survives Home Assistant restarts using the HA storage facility.
+Unobserved quarters, power sensor failures, integration activation midmonth
+and retrospective load history cannot be reconstructed; consequently
+the observed peak may **understate** the invoiced maximum. The values exclude
+work-price components, energy tax, network losses, VAT and other fees.
+They are not a substitute for the network operator's smart-meter portal
+or invoice. No network billing service is called, and none of these
+sensors changes the existing V15 load-shedding logic.
+
+**Sources**:
+[E-Control tariff consultation (29 Oct 2026)](https://www.e-control.at/de/konsumenten/begutachtungsentwurf-systemnutzungstarife-verordnung-2027),
+[SNE-T-V 2027 draft, §5(1) NE7](https://www.wko.at/oe/news/0339-hue-snt-v-2027-begutachtungsentwurf.pdf),
+[SNE-G-V §6 (tiered rates and 2 kW minimum)](https://www.ris.bka.gv.at/eli/bgbl/ii/2026/299/P6/NOR40281083).
+
+## Optional restoration of live mode after restart (development preview)
+
+Two independent, **default-OFF** options are available in the V15 setup and
+options screen:
+
+- `restore_live_control_on_restart`: restore **V15 Aktive Lastabschaltung**
+  only if it was ON before the restart or reload. Fresh meter measurements,
+  minimum coverage and all normal shedding interlocks are still required.
+  No previously shed device is claimed or restored by V15 after a restart.
+- `restore_pv_start_on_restart`: restore the **V15 PV-Programmstart** live
+  switch only if it was ON previously. **This does not restore permission to
+  start the dishwasher.** After HA is fully running, the designated
+  `input_boolean` must be observed OFF, and then deliberately set ON again.
+  A helper left ON from an earlier session is never a valid start request.
+
+If an option is OFF, its corresponding live switch remains OFF after restart,
+and the existing conservative simulation mode defaults to ON. The separate
+evcc controller still requires manual activation after restart. Synthetic
+demonstration mode is not restored. Explicitly enabling either live mode
+deactivates simulation. The opt-in restoration follows HA's `RestoreEntity`
+state store, which records switch state and may be unavailable before the
+first successful save of a restorable entity.
+
+**For testing:** after upgrading the development branch, first configure these
+options, manually enable the desired live switches and then reload or restart
+Home Assistant. Check that the intended live switches recover, and verify
+that the old dishwasher authorization cannot trigger a start.
+
+## PV-optimized Home Connect dishwasher start (experimental in 0.3.7)
+
+**Experimental, opt-in in 0.3.7.** The live switch requires separate authorization, and existing automations for the same dishwasher must be disabled to avoid competing start commands.
+Existing load-shedding, evcc and Home Connect pause/resume behavior is retained.
+No guaranteed compliance with utility billing demand peaks.
+
+This opt-in extension uses the existing Home Connect integration and a user-created
+`input_boolean` as a **one-shot authorization**. It only accepts dishwasher
+programs and checks the Home Connect operation state (`ready`), closed/locked door,
+remote start, remote control, selected program, valid V15 metering and 15-minute
+headroom before sending `home_connect.start_selected_program` for the selected
+Home Assistant device. It does not auto-select or change the program.
+
+The forecast sensor must supply `wh_period_15m`: a mapping from ISO-8601
+timestamps to **Wh per 15-minute interval** (e.g. Open-Meteo Solar Forecast
+`energy_production_today`). The scheduler compares expected solar yield over the
+configurable **whole cycle**, rather than using a single daily total or peak.
+It makes no claim to forecast *net* surplus: other future household loads are unknown.
+After the configured deadline, the solar threshold is waived for 15 minutes,
+but V15 headroom, selected program, authorization and all appliance interlocks remain mandatory.
+
+**Activation / safety:**
+
+1. In V15 options enable the experimental PV start, choose a Home Connect
+   **dishwasher Selected Program** entity, one `input_boolean`, the solar
+   forecast sensor, the earliest/latest time and conservative cycle watts.
+2. Turn **V15 PV-Programmstart** ON separately *after each restart*.
+   This is independent of the V15 active load shedding and evcc switches.
+3. At the dishwasher select the program, close its door, enable remote start
+   and deliberately turn the chosen input boolean ON once per load.
+4. V15 switches the helper OFF **before** sending the Home Connect command.
+   It then waits up to three minutes for the appliance to report `run`.
+   Failed or unconfirmed starts require manual checking and **fresh** authorization.
+5. Disable any existing Home Assistant dishwasher start automation first, so
+   two controllers cannot independently issue `StartSelectedProgram`.
+6. Start with a test appliance and conservative power assumptions. Cloud command
+   delay is not suitable for real-time load shedding, and later heating peaks
+   are not guaranteed to fit the quarter-hour billing cap.
+
+Missing or stale V15 readings, insufficient measurement coverage, unavailable
+Home Connect sensors, unconfirmed door/remote states and demo/simulation modes
+block all real starts. The new feature is disabled on restart or reload; the
+core V15 load management remains unchanged.
+
+
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 

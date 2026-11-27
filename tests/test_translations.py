@@ -9,6 +9,9 @@ FIELDS = {
     "grid_sensor", "limit_kw", "reserve_kw", "reverse_sign", "stale_seconds",
     "load_switches", "home_connect_pause_buttons", "auto_restore", "restore_stable_seconds",
     "restore_min_off_seconds", "restore_margin_watts", "evcc_configured",
+    "pv_start_configured", "restore_live_control_on_restart",
+    "restore_pv_start_on_restart",
+    "network_costs_configured",
 }
 
 
@@ -52,6 +55,36 @@ class TestFlowTranslations(unittest.TestCase):
                     self.assertEqual(set(step["data"]), set(step["data_description"]))
                     self.assertGreaterEqual(len(step["data"]), 12)
                     self.assertGreater(len(step["description"]), 150)
+
+    def test_pv_start_page_has_bilingual_labels_and_descriptions(self):
+        required = {
+            "pv_selected_program", "pv_start_arm", "pv_forecast_sensor",
+            "pv_earliest", "pv_deadline", "pv_duration_minutes",
+            "pv_minimum_wh", "pv_estimated_watts", "pv_margin_watts",
+            "pv_stable_seconds",
+        }
+        for language, content in (("de", self.de), ("en", self.en)):
+            for section in ("config", "options"):
+                with self.subTest(language=language, section=section):
+                    step = content[section]["step"]["pv_start"]
+                    self.assertEqual(set(step["data"]), required)
+                    self.assertEqual(set(step["data_description"]), required)
+                    self.assertTrue(all(step["data"].values()))
+                    self.assertTrue(all(step["data_description"].values()))
+
+    def test_capacity_charge_configuration_is_localized(self):
+        expected = {
+            "network_costs_mode", "network_costs_region",
+            "network_costs_first_cents", "network_costs_higher_cents",
+            "network_costs_minimum_kw",
+        }
+        for language, translation in (("de", self.de), ("en", self.en)):
+            for section in ("config", "options"):
+                with self.subTest(language=language, section=section):
+                    page = translation[section]["step"]["network_costs"]
+                    self.assertEqual(set(page["data"]), expected)
+                    self.assertEqual(set(page["data_description"]), expected)
+                    self.assertGreater(len(page["description"]), 200)
 
     def test_locales_have_matching_structure(self):
         def keys(value):
