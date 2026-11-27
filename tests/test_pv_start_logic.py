@@ -61,6 +61,25 @@ class TestPvWindow(unittest.TestCase):
         result = plan_window(self.forecast, self.now, "12:00", "12:00", 60)
         self.assertIsNone(result.start)
 
+    def test_preview_tomorrow_and_deadline(self):
+        now = self.now.replace(hour=13, minute=15)
+        tomorrow = {(datetime.fromisoformat(k) + timedelta(days=1)).isoformat(): v
+                    for k, v in self.forecast.items()}
+        start, source = mod.preview_start(self.forecast, tomorrow, now, "12:00", "13:00", 60, 350)
+        self.assertEqual(start, (now + timedelta(days=1)).replace(hour=12, minute=0))
+        self.assertEqual(source, "pv_forecast")
+        start, source = mod.preview_start(self.forecast, None, now, "12:00", "13:00", 60, 350)
+        self.assertEqual(start, (now + timedelta(days=1)).replace(hour=13, minute=0))
+        self.assertEqual(source, "deadline")
+
+    def test_preview_current_window_and_low_pv(self):
+        start, source = mod.preview_start(self.forecast, None, self.now, "12:00", "13:00", 60, 350)
+        self.assertEqual(start, self.now.replace(second=0))
+        self.assertEqual(source, "pv_forecast")
+        start, source = mod.preview_start(self.forecast, None, self.now, "12:00", "13:00", 60, 9999)
+        self.assertEqual(start, self.now.replace(hour=13, minute=0))
+        self.assertEqual(source, "deadline")
+
 
 if __name__ == "__main__":
     unittest.main()
