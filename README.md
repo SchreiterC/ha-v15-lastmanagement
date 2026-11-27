@@ -1,256 +1,332 @@
-> **Version 0.3.7:** Die bewährte Lastabschaltung und die bestehenden Home-Connect-/evcc-Funktionen bleiben verfügbar. Neu: optionaler, experimenteller PV-optimierter Geschirrspülerstart, optionale sichere Fortsetzung der Steuerung nach einem Neustart und rein informatives österreichisches Netzleistungsentgelt-Modell auf Basis eines unverbindlichen 2027er Entwurfs. Die experimentellen Funktionen sind nicht für garantierte Echtzeit-Lastabschaltungen geeignet.
-
 # V15 Lastmanagement für Home Assistant
 
-## Austrian grid-capacity charge preview (optional, experimental)
-
-From V15 0.3.7, users can enable **Netz-Leistungsentgelte (unverbindliches
-Modell)** in the V15 options. Supported: the 14 Austrian electricity network
-areas (nine federal-state network areas plus **Klagenfurt, Linz, Graz,
-Innsbruck and Kleinwalsertal**). Not every grid area is identical to the
-administrative boundaries of its federal state.
-
-Choose the source of the estimate:
-
-- **Draft 2027**: region-specific rates for grid level 7 from the E-Control
-  consultation proposal published **29 October 2026**. These are **not
-  enacted tariffs** and may be modified. The operator-dependent
-  tariff-transition date is **not known automatically**, and the proposed
-  progressive charges must not be presented as payable in 2026 or as the
-  customer's actual 2027 network bill.
-- **Own tariff**: enter two monthly capacity rates (cents/kW/month for the
-  first 10 kW and above 10 kW), plus a minimum billed kW. The default
-  2 kW minimum follows §6 SNE-G-V for regular grid-level-7 connections;
-  different contracts, mini-connections and transition rules can differ.
-
-The optional read-only sensors are:
-
-- **V15 Monatsspitze (lokal beobachtet)**, kW, maximum of *completed*
-  and sufficiently covered 15-minute local grid-import periods.
-- **V15 Leistungsentgelt (Modell, netto)**, EUR/month, based on this
-  observed maximum and the chosen draft/manual rate.
-- **V15 Leistungsentgelt bei Zielspitze (Differenz, Modell)**, EUR/month:
-  a **hypothetical** comparison of observed peak versus V15 target, **not
-  realized savings**. No claim is made that V15 achieved the target.
-
-A complete interval is accepted only with at least 855 of 900 measured
-seconds (95% coverage), and the highest observed monthly 15-minute
-average survives Home Assistant restarts using the HA storage facility.
-Unobserved quarters, power sensor failures, integration activation midmonth
-and retrospective load history cannot be reconstructed; consequently
-the observed peak may **understate** the invoiced maximum. The values exclude
-work-price components, energy tax, network losses, VAT and other fees.
-They are not a substitute for the network operator's smart-meter portal
-or invoice. No network billing service is called, and none of these
-sensors changes the existing V15 load-shedding logic.
-
-**Sources**:
-[E-Control tariff consultation (29 Oct 2026)](https://www.e-control.at/de/konsumenten/begutachtungsentwurf-systemnutzungstarife-verordnung-2027),
-[SNE-T-V 2027 draft, §5(1) NE7](https://www.wko.at/oe/news/0339-hue-snt-v-2027-begutachtungsentwurf.pdf),
-[SNE-G-V §6 (tiered rates and 2 kW minimum)](https://www.ris.bka.gv.at/eli/bgbl/ii/2026/299/P6/NOR40281083).
-
-## Optional restoration of live mode after restart (development preview)
-
-Two independent, **default-OFF** options are available in the V15 setup and
-options screen:
-
-- `restore_live_control_on_restart`: restore **V15 Aktive Lastabschaltung**
-  only if it was ON before the restart or reload. Fresh meter measurements,
-  minimum coverage and all normal shedding interlocks are still required.
-  No previously shed device is claimed or restored by V15 after a restart.
-- `restore_pv_start_on_restart`: restore the **V15 PV-Programmstart** live
-  switch only if it was ON previously. **This does not restore permission to
-  start the dishwasher.** After HA is fully running, the designated
-  `input_boolean` must be observed OFF, and then deliberately set ON again.
-  A helper left ON from an earlier session is never a valid start request.
-
-If an option is OFF, its corresponding live switch remains OFF after restart,
-and the existing conservative simulation mode defaults to ON. The separate
-evcc controller still requires manual activation after restart. Synthetic
-demonstration mode is not restored. Explicitly enabling either live mode
-deactivates simulation. The opt-in restoration follows HA's `RestoreEntity`
-state store, which records switch state and may be unavailable before the
-first successful save of a restorable entity.
-
-**For testing:** after upgrading the development branch, first configure these
-options, manually enable the desired live switches and then reload or restart
-Home Assistant. Check that the intended live switches recover, and verify
-that the old dishwasher authorization cannot trigger a start.
-
-## PV-optimized Home Connect dishwasher start (experimental in 0.3.7)
-
-**Experimental, opt-in in 0.3.7.** The live switch requires separate authorization, and existing automations for the same dishwasher must be disabled to avoid competing start commands.
-Existing load-shedding, evcc and Home Connect pause/resume behavior is retained.
-No guaranteed compliance with utility billing demand peaks.
-
-This opt-in extension uses the existing Home Connect integration and a user-created
-`input_boolean` as a **one-shot authorization**. It only accepts dishwasher
-programs and checks the Home Connect operation state (`ready`), closed/locked door,
-remote start, remote control, selected program, valid V15 metering and 15-minute
-headroom before sending `home_connect.start_selected_program` for the selected
-Home Assistant device. It does not auto-select or change the program.
-
-The forecast sensor must supply `wh_period_15m`: a mapping from ISO-8601
-timestamps to **Wh per 15-minute interval** (e.g. Open-Meteo Solar Forecast
-`energy_production_today`). The scheduler compares expected solar yield over the
-configurable **whole cycle**, rather than using a single daily total or peak.
-It makes no claim to forecast *net* surplus: other future household loads are unknown.
-After the configured deadline, the solar threshold is waived for 15 minutes,
-but V15 headroom, selected program, authorization and all appliance interlocks remain mandatory.
-
-**Activation / safety:**
-
-1. In V15 options enable the experimental PV start, choose a Home Connect
-   **dishwasher Selected Program** entity, one `input_boolean`, the solar
-   forecast sensor, the earliest/latest time and conservative cycle watts.
-2. Turn **V15 PV-Programmstart** ON separately *after each restart*.
-   This is independent of the V15 active load shedding and evcc switches.
-3. At the dishwasher select the program, close its door, enable remote start
-   and deliberately turn the chosen input boolean ON once per load.
-4. V15 switches the helper OFF **before** sending the Home Connect command.
-   It then waits up to three minutes for the appliance to report `run`.
-   Failed or unconfirmed starts require manual checking and **fresh** authorization.
-5. Disable any existing Home Assistant dishwasher start automation first, so
-   two controllers cannot independently issue `StartSelectedProgram`.
-6. Start with a test appliance and conservative power assumptions. Cloud command
-   delay is not suitable for real-time load shedding, and later heating peaks
-   are not guaranteed to fit the quarter-hour billing cap.
-
-Missing or stale V15 readings, insufficient measurement coverage, unavailable
-Home Connect sensors, unconfirmed door/remote states and demo/simulation modes
-block all real starts. The new feature is disabled on restart or reload; the
-core V15 load management remains unchanged.
-
-
+[**Deutsch**](#deutsch) · [**English**](#english)
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 
-**Reguläres Release 0.3.5. Keine zertifizierte oder garantierte Begrenzung abrechnungsrelevanter Lastspitzen.**
+> **Version 0.3.7** · Die Kernfunktion zur Viertelstunden-Laststeuerung bleibt unverändert. PV-Start, evcc/Home Connect und die österreichische Netzentgelt-Vorschau sind optional; experimentelle Funktionen bieten keine garantierte Lastspitzenbegrenzung.
 
-V15 beobachtet den Netzbezug in festen Viertelstunden (00/15/30/45), schätzt die voraussichtliche Viertelstundenleistung und kann bei drohender Überschreitung ausgewählte **unkritische** Home-Assistant-Schalter abschalten. Eine **optionale automatische Wiedereinschaltung** ist enthalten.
+---
 
-## Funktionen
 
-- Frei wählbarer Leistungssensor (W/kW), Vorzeichenumkehr und maximale Messwertalterung.
-- 15-Minuten-Durchschnitt, Prognose, Verbrauch, Messabdeckung und konservatives Restbudget.
-- Individuell konfigurierbare Leistungsgrenze und Reserve.
+## Deutsch
+
+### Überblick
+
+**V15 Lastmanagement 0.3.7** ist eine Home-Assistant-Integration zur Überwachung und vorsichtigen Begrenzung von Netzbezugs-Leistungsspitzen innerhalb fester Viertelstunden (00/15/30/45 Minuten). Aus dem gemessenen Netzbezug ermittelt V15 die bisherige Viertelstundenenergie, die Prognose und ein konservatives Leistungsbudget. Bei drohender Überschreitung können ausdrücklich ausgewählte, **unkritische** Verbraucher abgeschaltet werden.
+
+Die Lastabschaltung, ihre optionale Rückschaltung und die Diagnose bilden die Kernfunktion. **Experimentell und nur nach ausdrücklicher Aktivierung** sind die evcc-Steuerung, die Home-Connect-Pause/Fortsetzung und der PV-optimierte Geschirrspülerstart. Die österreichische Netzentgelt-Anzeige ist ein **unverbindliches Informationsmodell**, kein Abrechnungsdienst.
+
+**V15 ist kein geeichter Leistungszähler und garantiert keine Einhaltung abrechnungsrelevanter Lastgrenzen.** Cloud-Befehle, Messwertlatenzen und unbekannte spätere Geräteleistungen lassen keine garantierte Echtzeitbegrenzung zu.
+
+### Funktionen
+
+- Frei wählbarer Netzleistungssensor in W oder kW, optional mit Vorzeichenumkehr und begrenztem Messwertalter.
+- Aktuelle Viertelstunden-Netzenergie, Durchschnitt, Prognose, Messabdeckung und verbleibendes Leistungsbudget.
+- Konfigurierbare Leistungsgrenze und zusätzliche Sicherheitsreserve.
 - Priorisierte Abschaltung mehrerer `switch`-Entitäten.
-- Optionales Wiedereinschalten in umgekehrter Abschaltreihenfolge, wenn die Reserve nachweisbar ausreicht.
-- Simulation mit echten Messwerten ohne Schaltung und Demo mit künstlichen Messwerten.
-- Diagnose mit verwalteten Abschaltungen, Rückschaltkandidat und Wartegrund.
-- Ohne evcc: bisherige 14 Entitäten. Mit evcc: zwei zusätzliche Entitäten (evcc-Regelschalter und Zielstromsensor). Die bisherigen `unique_id`s bleiben unverändert.
+- Optionale Wiedereinschaltung **nur** der in der aktuellen Laufzeit von V15 bestätigten Abschaltungen.
+- Probelauf mit echten Messwerten ohne Schaltbefehle sowie Demonstrationsmodus mit künstlichen Daten.
+- Diagnosewerte für Schaltvorgänge, verwaltete Lasten, Rückschaltkandidaten und Wartegründe.
+- Optionale, eigenständig freizugebende evcc-Ladestromsteuerung und Home-Connect-Pause/Fortsetzung.
+- Optionaler PV-optimierter Home-Connect-Geschirrspülerstart mit einmaliger Freigabe.
+- Optionale Wiederherstellung der beiden V15-Live-Schalter nach einem Neustart.
+- Optionale, rein informative Anzeige österreichischer Netz-Leistungsentgelte für Netzebene 7.
+
+### Installation und Aktualisierung
+
+**Voraussetzung: Home Assistant 2026.11 oder neuer.** Die reguläre Version ist **0.3.7**; für dieses Release ist keine Pre-release-Option nötig.
 
 <!-- ha-marketplace:exclude-start -->
-## Installation und Update über den Home Assistant Marketplace
-
 [![Im Home Assistant Marketplace öffnen](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration)
 
-**Voraussetzung:** Home Assistant 2026.11 oder neuer. V15 ist noch nicht im allgemeinen Marketplace-Katalog gelistet und wird daher als benutzerdefiniertes Repository hinzugefügt.
+1. [V15 Lastmanagement im Home Assistant Marketplace öffnen](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration). Falls V15 im Katalog nicht zu finden ist, unter **Einstellungen → Marketplace → Add from link** die Adresse `https://github.com/SchreiterC/ha-v15-lastmanagement` hinzufügen. Für benutzerdefinierte Repositories kann eine GitHub-Verbindung erforderlich sein.
+2. Im Marketplace die **reguläre Version 0.3.7** installieren beziehungsweise die vorhandene Installation auf diese Version aktualisieren.
+3. **Home Assistant vollständig neu starten.**
+4. Bei Neuinstallation unter **Einstellungen → Geräte & Dienste** V15 einrichten. Bei Updates die vorhandene Integration **nicht löschen**; die bisherigen Konfigurationen und Entitätskennungen sollen erhalten bleiben.
+5. Neue optionale Funktionen unter **V15 Lastmanagement → Konfigurieren** bewusst aktivieren. Nach dem Update die vorhandenen Einstellungen und die Diagnosesensoren prüfen.
 
-1. [V15 Lastmanagement im Marketplace öffnen](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration). Alternativ unter **Einstellungen → Marketplace → Add from link** das Repository `https://github.com/SchreiterC/ha-v15-lastmanagement` hinzufügen. Für benutzerdefinierte Repositories ist eine GitHub-Verbindung im Marketplace erforderlich.
-2. **Reguläre Version wählen:** Version **0.3.5** installieren. Die Option **Pre-release** ist dafür **nicht erforderlich**. Wer nur reguläre Releases verwenden möchte, lässt die Pre-release-Option ausgeschaltet.
-3. **V15 Lastmanagement** im Marketplace installieren bzw. auf **0.3.5** aktualisieren.
-4. Home Assistant vollständig neu starten.
-5. Bei Neuinstallation V15 unter **Einstellungen → Geräte & Dienste** einrichten. Bestehende Installationen **nicht löschen**. Die 13 bisherigen Entitäten behalten ihre Identität, zusätzlich erscheint „V15 Verwaltete Abschaltungen“.
-6. Bei einem Upgrade von Beta 2: **V15 → Konfigurieren/Optionen** öffnen, um die neuen Wiedereinschaltoptionen zu setzen. Standardmäßig bleibt die Wiedereinschaltung deaktiviert.
-
-Bereits mit HACS installierte Integrationen werden beim Umstieg auf Home Assistant 2026.11 automatisch in den Marketplace übernommen. V15 muss dafür nicht neu installiert werden.
+Ältere, bereits über HACS installierte Integrationen werden beim Wechsel zum integrierten Marketplace übernommen. Nach einem manuellen Dateiaustausch ebenfalls Home Assistant neu starten. Falls Übersetzungen veraltet erscheinen, die Browserseite vollständig neu laden.
 <!-- ha-marketplace:exclude-end -->
 
-## Status der Funktionen
+### Lastabschaltung und automatische Wiedereinschaltung
 
-Die Viertelstundenberechnung, priorisierte Lastabschaltung, optionale Rückschaltung, Simulation und Diagnose bilden die regulär veröffentlichte Kernfunktion. Die **evcc-Steuerung bleibt eine separat einzurichtende, ausdrücklich zu aktivierende experimentelle Funktion**. Für diese Erweiterung stehen Hardware- und Langzeittests noch aus. V15 ersetzt keinen geeichten Netz-/Leistungszähler und garantiert nicht, dass eine vertragliche Viertelstunden-Grenze eingehalten wird.
+Unter **Einstellungen → Geräte & Dienste → V15 Lastmanagement → Konfigurieren** werden Netzsensor, Viertelstunden-Grenze, Reserve und die priorisierten Schalter ausgewählt. Die **aktive Lastabschaltung** ist ein eigener Schalter. Demo und Probelauf führen keine realen Schaltungen aus.
 
-## Sprache und Erklärung im Einrichtungsdialog
+Die **automatische Wiedereinschaltung** ist optional und muss ausdrücklich freigegeben werden. Die Vorgaben sind konfigurierbar:
 
-Die Einstellungsseiten sind auf **Deutsch und Englisch** übersetzt. Die Sprache richtet sich nach der eingestellten Sprache des Home-Assistant-Benutzers. Alle Felder enthalten nun zusätzliche Erläuterungen. Auf der zweiten Seite erklärt V15 die benötigten Leistungswerte in **Watt**, zeigt die ausgewählten Schalter und warnt vor zu kleinen Schätzwerten.
+1. **Mindest-Ausschaltdauer**: standardmäßig **180 Sekunden**.
+2. **Stabile Leistungsreserve**: standardmäßig **90 Sekunden**.
+3. **Zusätzlicher Leistungspuffer**: standardmäßig **200 W**.
+4. **Geschätzte Geräteleistung**: für jeden ausgewählten Schalter separat und konservativ in **Watt** eingeben, einschließlich möglicher Anlaufspitzen.
 
-Nach einem manuellen Austausch der Integrationsdateien ist ein **vollständiger Home-Assistant-Neustart** erforderlich. Bei nicht aktualisierten Texten die Seite neu laden (gegebenenfalls Browser-Cache aktualisieren). Bei einem Upgrade über den Marketplace dieselben Schritte nach dem Download ausführen.
+V15 berücksichtigt nur Geräte, die es **selbst in der aktuellen Laufzeit abgeschaltet** hat und deren Zustand `off` bestätigt wurde. Manuell abgeschaltete Verbraucher werden nicht durch V15 eingeschaltet. Die Rückschaltung erfolgt einzeln und in **umgekehrter Abschaltreihenfolge**. Zwischen zwei Einschaltungen liegen mindestens 60 Sekunden.
 
-## Konfiguration der Wiedereinschaltung
+Voraussetzung sind gültige Leistungsmesswerte, mindestens **60 Sekunden Messzeit und 95 % Messabdeckung** innerhalb der laufenden Viertelstunde, eine ungefährdete Prognose, ausreichendes Leistungsbudget, die Mindest-Ausschaltdauer und eine stabile Leistungsreserve. In den **letzten 90 Sekunden** einer Viertelstunde wird keine Rückschaltung begonnen. Fehler, fehlende Daten oder nicht bestätigte Zustände blockieren weitere Aktionen.
 
-Unter **Einstellungen → Geräte & Dienste → V15 Lastmanagement → Konfigurieren**:
+**Beispiel:** Bei 5,0 kW Grenzwert und 0,5 kW Reserve beträgt das Steuerungsbudget höchstens 4,5 kW. Für einen Verbraucher mit geschätzten 600 W und 200 W Puffer muss zusätzlich eine Reserve für **800 W** vorhanden sein. Das ist eine Vorsichtsregel, keine Garantie für die tatsächliche Verbrauchsspitze.
 
-1. Wie bisher Netzsensor, 15-Minuten-Grenze, Reserve und Abschalt-Schalter wählen.
-2. **Automatische Wiedereinschaltung erlauben** aktivieren. Ohne diese ausdrückliche Freigabe werden Lasten weiterhin nur abgeschaltet.
-3. Mindest-Ausschaltdauer (Standard **180 s**), notwendige stabile Reserve (Standard **90 s**) und zusätzlichen Puffer (Standard **200 W**) wählen.
-4. Im nächsten Dialog **für jeden konfigurierten Schalter die konservativ erwartete Leistungsaufnahme in Watt** eintragen. Berücksichtige Anlaufspitzen und die reale Wirkung auf den Netzbezug. Bei zu niedriger Schätzung sind Überschreitungen möglich.
-5. Die **V15 Aktive Lastabschaltung** bleibt auch bei aktivierter automatischer Wiedereinschaltung nach jedem HA-Neustart ausgeschaltet. Für echte Schaltvorgänge muss sie gezielt eingeschaltet werden.
+Nach einem Neustart, einem Neuladen oder einer Änderung der Konfiguration wird die Zuständigkeit für zuvor abgeschaltete Geräte **nicht wiederhergestellt**. Diese Verbraucher bleiben gegebenenfalls ausgeschaltet und müssen manuell überprüft werden. Auch das Deaktivieren der Laststeuerung schaltet sie nicht sofort wieder ein.
 
-Beispiel: Bei 5,0 kW Grenzwert und 0,5 kW Reserve liegt das angezeigte Steuerungsbudget höchstens bei 4,5 kW. Ein Gerät mit eingetragener Leistung von 600 W und 200 W zusätzlichem Puffer darf nur eingeschaltet werden, wenn der aktuelle Netzbezug **und** die verbleibende Viertelstundenenergie genügend Platz für insgesamt weitere 800 W lassen. Der Puffer ist eine zusätzliche Vorsichtsmaßnahme und keine Garantie.
+### V15-Schalter nach Neustart fortsetzen (optional)
 
-### Wie V15 wieder einschaltet
+Zwei **voneinander unabhängige und standardmäßig deaktivierte** Einstellungen stehen zur Verfügung:
 
-- Es kommen **ausschließlich Schalter infrage, die V15 in diesem Lauf selbst ausgeschaltet hat und deren OFF-Zustand bestätigt wurde**. Bereits zuvor manuell abgeschaltete Geräte werden nicht eingeschaltet.
-- Bei manueller bzw. externer Einschaltung endet die Zuständigkeit von V15 für dieses Gerät.
-- Der Netzleistungssensor muss gültig sein. Mindestens 60 Sekunden und 95 % Messabdeckung der laufenden Viertelstunde sind erforderlich. Demo und Probelauf schalten nie.
-- Die aktuelle Leistung **plus** eingetragene Geräteleistung **plus** zusätzlichen Puffer muss unter dem konservativ begrenzten Restbudget liegen. Eine gefährdete Viertelstundenprognose blockiert die Wiedereinschaltung.
-- Die Reserve muss mindestens 90 Sekunden **durchgehend** ausreichend sein, das Gerät mindestens 180 Sekunden ausgeschaltet (beide Zeiten konfigurierbar).
-- In den letzten 90 Sekunden einer Viertelstunde startet V15 keine Rückschaltung, damit die neue Viertelstunde nicht mit einer unkontrolliert frisch zugeschalteten Last beginnt.
-- Die Rückschaltung erfolgt einzeln, in **umgekehrter Abschaltreihenfolge**. Nach jeder Rückschaltung wird mindestens 60 Sekunden gewartet, bevor ein weiteres Gerät eingeschaltet werden darf.
-- Der Status wird als Text in den Attributen von **V15 Diagnose** angezeigt. Der Sensor **V15 Verwaltete Abschaltungen** zählt die von V15 verwalteten ausgeschalteten Schalter.
+- **Lastabschaltung nach Neustart fortsetzen** (`restore_live_control_on_restart`): War **V15 Aktive Lastabschaltung** zuvor eingeschaltet, wird dieser Schalter nach Neustart beziehungsweise Neuladen wieder aktiviert. Neue Schaltaktionen erfordern weiterhin gültige Messwerte und die üblichen Sicherheitsprüfungen. Zuvor abgeschaltete Geräte werden dadurch **nicht** automatisch wieder eingeschaltet.
+- **PV-Startsteuerung nach Neustart fortsetzen** (`restore_pv_start_on_restart`): War **V15 PV-Programmstart** zuvor eingeschaltet, kann der Schalter wieder aktiv werden. **Eine alte Startfreigabe gilt ausdrücklich nicht weiter.** Nach vollständig gestartetem Home Assistant muss der zugehörige `input_boolean` zunächst **AUS** und dann bewusst wieder **EIN** geschaltet werden.
 
-**Wichtige Einschränkung bei Neustart, Update und Konfigurationsänderung:** V15 vergisst die in diesem Lauf selbst abgeschalteten Verbraucher bewusst beim Neuladen der Integration und lässt sie ausgeschaltet. Sie werden nicht nachträglich automatisch eingeschaltet. Das verhindert eine unkontrollierte Wiedereinschaltung nach Neustarts. Prüfe sie dann manuell. Auch das Deaktivieren der aktiven Laststeuerung schaltet bereits ausgeschaltete Geräte **nicht** sofort wieder ein.
+Ist die jeweilige Option ausgeschaltet, bleibt der entsprechende Live-Schalter nach einem Neustart aus. Der vorsichtige Probelauf ist standardmäßig aktiv. Das ausdrückliche Aktivieren eines Live-Schalters beendet den Probelauf. Die separate evcc-Steuerung muss nach Neustarts weiterhin manuell freigegeben werden. Die Wiederherstellung nutzt den Home-Assistant-Zustandsspeicher und setzt einen zuvor gespeicherten Schalterzustand voraus.
 
+### PV-optimierter Home-Connect-Geschirrspülerstart (experimentell)
 
-## Experimentell: optionale evcc-Ladestrombegrenzung
+Die eigenständige, optionale Steuerung verwendet die **bestehende Home-Connect-Integration** von Home Assistant und einen bewusst gesetzten `input_boolean` als **einmalige Startfreigabe**. Sie ist derzeit auf Home-Connect-**Geschirrspüler** beschränkt und ändert das ausgewählte Programm nicht selbst.
 
-**Wichtig: Die evcc-Funktion bleibt auch im regulären Release 0.3.5 experimentell.** Sie wurde mit virtuellen Wallbox-Entitäten in Home Assistant getestet, **noch nicht mit echtem evcc, echter Wallbox oder Fahrzeug**. Ein reguläres Release bedeutet **keine Freigabe dieser Pilotfunktion für den ungeprüften produktiven Betrieb**. Die bestehende Lastabschaltung und -rückschaltung bleiben unverändert. Die evcc-Steuerung wird nicht automatisch eingeschaltet.
+Der Prognosesensor muss das Attribut `wh_period_15m` enthalten: ISO-8601-Zeitstempel mit **Wh je 15 Minuten**, zum Beispiel aus Open-Meteo Solar Forecast. V15 vergleicht die Solarerzeugung über die **gesamte geschätzte Programmdauer**. Eine Prognose des tatsächlich verfügbaren PV-Überschusses ist das nicht, weil künftige Haushaltslasten unbekannt sind.
 
-### Voraussetzungen
+**Einrichtung und Ablauf:**
 
-- Eine laufende evcc-Installation und ihre Home-Assistant-Integration (beispielsweise `marq24/ha-evcc`). V15 verwendet die vorhandenen Entitäten, nicht die direkte evcc-HTTP-API.
-- Ein `select` oder `number` für den **maximalen Ladestrom in Ampere**, ein `select` für den **Lademodus** (mit `smart` und `off`) und ein Leistungssensor der Wallbox in **W oder kW**.
-- Ein Sensor für die aktiven Phasen (1 oder 3), alternativ eine bewusst festgelegte Phasenzahl von 1 oder 3. Bei einer dreiphasig möglichen Wallbox darf die Ersatz-Phasenzahl nicht 1 sein.
-- Alle bestehenden Home-Assistant-Automationen, die denselben evcc-Maximalstrom oder -Modus verändern, für den Test **deaktivieren**. Gleichzeitige Regler können sich widersprechen.
+1. In den V15-Optionen **Experimentellen PV-optimierten Home-Connect-Programmstart** aktivieren. Die Entität **Ausgewähltes Programm** des Geschirrspülers, den Freigabe-Helfer, den Prognosesensor, Startzeitraum, Programmdauer, Mindest-PV-Energie, angenommene Geräteleistung, Puffer und erforderliche stabile Reserve festlegen.
+2. Den separaten Schalter **V15 PV-Programmstart** aktivieren. Er ist unabhängig von Lastabschaltung und evcc. Wenn die Neustart-Wiederherstellung nicht eingeschaltet ist, muss er nach Neustarts erneut aktiviert werden.
+3. Am Gerät das gewünschte Programm einstellen, die Tür schließen, Fernstart aktivieren und den gewählten Freigabe-Helfer für diesen Spülgang bewusst einschalten.
+4. Vor einem Start prüft V15 den Status `ready`, geschlossene beziehungsweise verriegelte Tür, Fernsteuerung, Fernstart, Verbindung, ausgewähltes Geschirrspülprogramm, gültige V15-Messwerte und ausreichendes Viertelstundenbudget.
+5. V15 schaltet den Freigabe-Helfer **vor** dem Befehl `home_connect.start_selected_program` aus. Innerhalb von drei Minuten muss der Betriebszustand `run` bestätigt werden. Bei Fehlern oder ausbleibender Bestätigung wird eine Meldung erstellt; ein automatischer zweiter Versuch erfolgt nicht.
+6. **Vorherige Home-Assistant-Automationen, die denselben Geschirrspüler starten, deaktivieren**, damit keine konkurrierenden Startbefehle entstehen. Zunächst mit konservativen Leistungsannahmen testen.
 
-### Einrichtung
+Ab dem festgelegten spätesten Startzeitpunkt entfällt für **15 Minuten** nur die PV-Mindestprognose. Alle Geräte- und Leistungsprüfungen bleiben bestehen. Demo, Probelauf, zu geringe Messabdeckung, fehlende oder veraltete Messwerte sowie nicht bestätigte Gerätebereitschaft verhindern den realen Programmstart.
 
-1. Unter **V15 Lastmanagement → Konfigurieren** das Kästchen **Optionale evcc-Wallboxsteuerung einrichten** aktivieren.
-2. Auf der zusätzlichen Seite evcc-Maximalstrom, Lademodus, Ladeleistung, gegebenenfalls Phasensensor und Grenzwerte auswählen. Für eine typische 3-Phasen-Wallbox zunächst 230 V, 6–16 A, 300 W zusätzlichen Puffer, 90 s stabile Reserve und 30 s Änderungsabstand verwenden.
-3. **Ladepause zulassen** zunächst **deaktiviert** lassen. Ohne diese Freigabe kann V15 unterhalb der 6-A-Mindestgrenze nur einen Hinweis anzeigen und maximal auf 6 A reduzieren.
-4. Nach dem Neustart den Sensor **V15 evcc Zielstrom** und die Attribute von **V15 Diagnose** prüfen. Der Zielstrom wird auch im Probelauf aus echten Daten berechnet; `unbekannt` bedeutet unter anderem, dass der erlaubte Strom unter 6 A läge oder Messwerte fehlen.
-5. Nach dem Probelauf den separaten Schalter **V15 evcc-Ladestromregelung** ausdrücklich einschalten. Es wird nur im evcc-Modus `smart` gesteuert. Das Einschalten beendet den V15-Probelauf. Die bisherige V15-Lastabschaltung ist ein eigener Schalter und muss dafür nicht aktiviert sein.
+Die Cloud-Reaktionszeit und spätere Heizphasen sind nicht exakt vorauszusehen. Der PV-Start **garantiert keine** Begrenzung der abrechnungsrelevanten Viertelstundenleistung. Ein erfolgreicher Praxistest erfolgte mit einem NEFF-Home-Connect-Geschirrspüler; andere Geräte müssen separat überprüft werden.
 
-### Regellogik
+### Home Connect pausieren und fortsetzen (experimentell)
 
-- V15 begrenzt den maximal erlaubten evcc-Ladestrom aus dem verfügbaren Viertelstundenbudget, der **tatsächlich gemessenen Wallbox-Ladeleistung** und dem übrigen Netto-Netzbezug. Die allgemeine Sicherheitsreserve wird zusätzlich durch den konfigurierten evcc-Puffer ergänzt.
-- Stromsenkungen werden ohne 90-s-Wartezeit angefordert, Erhöhungen erst nach stabiler Reserve und schrittweise um höchstens **1 A** in mindestens **30 s** Abstand. V15 erhöht niemals über die zu Beginn der Steuerung vorgefundene evcc-Maximalstromgrenze.
-- Ist selbst die Mindestladeleistung (6 A × Phasenzahl × ca. 230 V) zu hoch, wird **nur bei ausdrücklicher Freigabe** und **nur bei tatsächlich messbarer Ladeleistung** der evcc-Modus von `smart` auf `off` gesetzt. V15 darf ausschließlich **seine eigene Ladepause** nach stabiler Leistungsreserve wieder in `smart` freigeben. Der Modus `now` wird niemals gesetzt.
-- Sind normale V15-Abschaltschalter aktiv, werden diese bei Gefährdung zuerst behandelt. V15 verändert nicht gleichzeitig einen Schalter und evcc anhand desselben unbestätigten Netzleistungswertes.
-- Bei ungültigen Daten, Messabdeckung unter 95 %, fehlender Bestätigung eines Stellbefehls oder einer externen Änderung des evcc-Modus/Stromlimits werden **keine weiteren evcc-Stellbefehle** ausgeführt. V15 wechselt gegebenenfalls in den deaktivierten Zustand.
-- Bei einem HA-Neustart, einer Neukonfiguration oder dem Abschalten des evcc-Regelschalters **werden die von V15 gesetzten evcc-Grenzen und Ladepausen nicht automatisch zurückgesetzt**. Das vermeidet unkontrollierte Leistungssprünge. Bitte im evcc-Dashboard manuell prüfen und gegebenenfalls wieder `smart` und die gewünschte Maximalstromgrenze einstellen.
+Optional können geeignete Home-Connect-Geräte über die vorhandenen `PauseProgram`- und `ResumeProgram`-Entitäten in die Laststeuerung eingebunden werden. **V15 unterbricht dabei nicht die Stromversorgung**, sendet keinen `StopProgram`-Befehl und startet über diese Pause/Fortsetzung-Funktion kein neues Programm.
 
-### Bewusste Einschränkungen
+Eine Pause wird V15 nur zugerechnet, wenn das Gerät den Pausenzustand bestätigt. Ein automatisches Fortsetzen erfolgt ausschließlich für eine von V15 bestätigte Pause, wenn Mindestpause, ausreichendes Leistungsbudget, geschätzte Geräteleistung, Puffer und stabile Reserve erfüllt sind.
 
-- V15 steuert nur **einen evcc-Ladepunkt** pro Integrationseintrag und verwendet zunächst die Home-Assistant-Entitäten, nicht die native evcc REST-API.
-- Keine Phasenumschaltung durch V15, keine Steuerung von Fahrzeug-SoC, Ladeplänen, Solarpriorität oder dynamischen Strompreisen. Diese Aufgaben verbleiben bei evcc.
-- Die Berechnung mit 230 V pro Phase ist eine Näherung. Leistungsbegrenzungen sind nicht abrechnungsgenau garantiert.
-- Die aktive evcc-Steuerung darf wegen der noch ausstehenden Hardwaretests **nicht ungeprüft in einer produktiven Anlage** eingeschaltet werden.
+Cloudverzögerungen, fehlende Bestätigungen oder Home-Assistant-Neustarts können eine **manuelle Fortsetzung** erforderlich machen. Die automatische Wiedereinschaltung muss für diese Funktion ausdrücklich aktiviert sein. Auch diese Erweiterung ist kein verlässlicher Echtzeit-Lastabwurf.
 
-## Sicherheit und Grenzen
+### Optionale evcc-Ladestromregelung (experimentell)
 
-- **Keine sicherheitskritischen Lasten** schalten (medizinische Geräte, Gefrierschränke mit Risiko des Warenverlusts, Server, Alarmtechnik, Heizungsschutz etc.).
-- Die Einschaltentscheidung verwendet **eine geschätzte Leistungsaufnahme pro Schalter**. Ein `switch` liefert nicht zuverlässig die tatsächliche Leistung oder Einschaltspitze. Selbst bei korrekten Schätzungen können PV, Speicher oder andere Lasten unerwartet reagieren.
-- Das aktuelle elektrische Restbudget ist ein konservativ gekappter Wert. Die V15-Berechnung ist kein geeichter Viertelstunden-Zähler; keine Garantie für die Einhaltung eines Netzbetreiber-Limits.
-- Die Messintegration berücksichtigt nur positiven Netzbezug; Einspeisung wird nicht gegengerechnet.
-- Netzlast, Gerätereaktion und Schaltzustände können zeitlich verzögert sein. Nicht bestätigte Schaltvorgänge werden protokolliert, und Wiedereinschaltbefehle werden nicht unbegrenzt wiederholt.
-- Bei fehlenden oder veralteten Netzleistungsdaten werden **weder Abschaltung noch Wiedereinschaltung** ausgelöst. Bereits ausgeschaltete Geräte bleiben vorerst aus.
-- Gleichzeitige andere Automationen für dieselben Schalter und für denselben evcc-Maximalstrom sind zu vermeiden. Victron-Speicherparameter werden in dieser Version nicht gesteuert.
+Die evcc-Funktion verwendet **vorhandene Home-Assistant-Entitäten** einer evcc-Integration, nicht direkt die evcc-HTTP-API. Sie steuert **einen Ladepunkt** pro V15-Eintrag und ist nicht automatisch aktiv.
 
-## Sichere Testreihenfolge
+**Voraussetzungen:** Ein `select` oder `number` für den maximalen Ladestrom in Ampere, ein `select` für den Lademodus (mindestens `smart` und `off`), ein gemessener Wallbox-Leistungssensor in W oder kW sowie die Zahl aktiver Phasen (1 oder 3) beziehungsweise eine bewusst konfigurierte Ersatz-Phasenzahl. Bei einer möglicherweise dreiphasigen Wallbox darf die Ersatz-Phasenzahl nicht fälschlich auf 1 gesetzt werden.
 
-1. Backup erstellen, nur eine unkritische Teststeckdose konfigurieren, mit Probelauf starten.
-2. Aktive Lastabschaltung einschalten und bei absichtlich niedrigem Grenzwert die bestätigte Abschaltung beobachten.
-3. Zum Test der Wiedereinschaltung **nicht zwischendurch die V15-Einstellungen ändern**, da das die Integration neu lädt und die Liste abgeschalteter Geräte löscht.
-4. Die übrige Hauslast außerhalb von V15 senken, bis die Reserve für *Geräteleistung + Puffer* ausreicht. Nach Mindest-Ausschaltdauer und stabiler Reserve muss der Schalter einmalig zurückgeschaltet werden.
-5. Danach aktive Lastabschaltung deaktivieren und Grenzwerte wieder auf normale Werte stellen.
-6. Testfälle mit ungültigen Messwerten und Neustart separat durchführen. Die bisherige Abschaltung und Wiedereinschaltung wurden in Home Assistant praktisch getestet. Die neue evcc-Anbindung wurde automatisiert und mit einer virtuellen Wallbox in einer separaten Docker-HA-Instanz getestet; ein Test mit echter evcc-/Wallbox-Hardware steht noch aus.
+**Konfiguration und Regelung:**
 
-## Fehler und Vorschläge
+1. Unter **V15 → Konfigurieren** die **optionale evcc-Wallboxsteuerung** einschalten und die Entitäten auswählen. Als Ausgangspunkt für eine typische 3-Phasen-Wallbox dienen etwa **230 V**, **6–16 A**, **300 W** zusätzlicher Puffer, **90 Sekunden** stabile Reserve und **30 Sekunden** Änderungsabstand.
+2. **Ladepause zulassen** zunächst deaktiviert lassen. Ohne ausdrückliche Freigabe reduziert V15 höchstens bis zur konfigurierten Mindeststromgrenze, typischerweise 6 A.
+3. Den Sensor **V15 evcc Zielstrom** im Probelauf prüfen. Erst danach den gesonderten Schalter **V15 evcc-Ladestromregelung** aktivieren. Geregelt wird nur im Modus `smart`.
+4. Stromsenkungen werden ohne die für Erhöhungen geltende Stabilitätswartezeit angefordert. Erhöhungen erfolgen schrittweise um höchstens **1 A** in mindestens **30 Sekunden** Abstand und nie über die zu Steuerungsbeginn vorgefundene Maximalstromgrenze.
+5. Falls die minimale Ladeleistung das Budget überschreitet, darf V15 nur bei ausdrücklicher Freigabe und messbarer Ladeleistung den Modus von `smart` auf `off` stellen. Es darf nur eine **eigene** Ladepause später wieder in `smart` freigeben; `now` wird nicht gesetzt.
+6. Bei widersprüchlichen Stellbefehlen, ungültigen Messwerten, ungenügender Messabdeckung, fehlender Bestätigung oder externen Änderungen werden weitere Stellbefehle blockiert. Normale V15-Abschaltungen werden bei Gefahr zuerst behandelt.
 
-Bitte ein [GitHub Issue](https://github.com/SchreiterC/ha-v15-lastmanagement/issues) eröffnen und Home-Assistant-Version, V15-Version sowie Diagnose/Protokoll (ohne persönliche Daten und Zugangsdaten) ergänzen.
+**Grenzen:** Keine Phasenumschaltung, keine Fahrzeug-SoC-Steuerung, keine Ladepläne, Solarpriorität oder dynamische Tarifoptimierung durch V15. Die Rechnung mit 230 V pro Phase ist eine Näherung. Nach Neustart oder Ausschalten von V15 werden von V15 gesetzte evcc-Grenzen und Ladepausen **nicht automatisch zurückgesetzt**. Die Wallbox daher im evcc-Dashboard überprüfen. Parallele Automationen für denselben Ladestrom oder Modus während des Tests deaktivieren. Der ungeprüfte produktive Einsatz an anderen Hardwarekombinationen wird nicht empfohlen.
 
-## Lizenz
+### Österreichische Netz-Leistungsentgelte (optionales Informationsmodell)
 
-MIT für den Quellcode. Das Logo ist eine projektbezogene Grafik.
+Version 0.3.7 bietet eine **rein lesende** Kostenanzeige für österreichische Anschlüsse auf **Netzebene 7**. Es werden **14 Netzbereiche** unterschieden: die neun Bundesland-Netzbereiche sowie **Klagenfurt, Linz, Graz, Innsbruck und Kleinwalsertal**. Diese Netzbereiche entsprechen nicht immer exakt den Bundeslandgrenzen.
+
+**Tarifgrundlagen:**
+
+- **Entwurf 2027:** regionale Leistungspreise aus dem **E-Control-Begutachtungsentwurf zur SNE-T-V 2027 vom 29. Oktober 2026**. Diese Daten sind **unverbindlich**, nicht automatisch tatsächlich geltende Tarife und nicht zwingend die späteren Übergangspreise des jeweiligen Netzbereichs. Die Einführungstermine werden nicht automatisch ermittelt.
+- **Eigentarif:** Selbst eingegebene monatliche Leistungspreise in **Cent je kW und Monat** für die ersten **10 kW** und für den darüberliegenden Anteil sowie eine einstellbare Mindestverrechnungsleistung. Der voreingestellte Ansatz von **2 kW** gilt nicht ausnahmslos für jeden Vertrag.
+
+**Zusätzliche Sensoren:**
+
+- **V15 Monatsspitze (lokal beobachtet)** in kW: höchster ausreichend vollständig erfasster Viertelstunden-Netzbezug seit Beginn der lokalen Aufzeichnung im laufenden Monat.
+- **V15 Leistungsentgelt (Modell, netto)** in EUR pro Monat: rechnerische Leistungskomponente nach ausgewähltem Tarif und lokal beobachteter Monatsspitze.
+- **V15 Leistungsentgelt bei Zielspitze (Differenz, Modell)** in EUR pro Monat: **hypothetischer Vergleich** mit der eingestellten V15-Zielspitze, **kein nachgewiesener finanzieller Vorteil**.
+
+Ein Viertelstundenwert wird nur bei mindestens **855 von 900 Sekunden Messabdeckung (95 %)** berücksichtigt. Die erfasste Monatsspitze wird über Home-Assistant-Neustarts gespeichert. Nicht erfasste Zeiträume, Messausfälle, eine Aktivierung mitten im Monat oder frühere historische Spitzen können nicht rekonstruiert werden. Die tatsächliche Netzbetreiber-Abrechnung kann daher **höher** ausfallen.
+
+Die Modellwerte enthalten unter anderem **keine Umsatzsteuer, Energie- und Netzarbeitspreise sowie weitere Netz- und Abgabenbestandteile**. Sie ersetzen weder das Smartmeter-Portal noch die Rechnung des Netzbetreibers. Es erfolgt kein Abruf von Rechnungsdaten und **keine Änderung der V15-Laststeuerung** durch diese Sensoren.
+
+**Quellen:** [E-Control – Begutachtungsentwurf 2027](https://www.e-control.at/de/konsumenten/begutachtungsentwurf-systemnutzungstarife-verordnung-2027) · [SNE-T-V 2027, Entwurf, ` 5 Abs. 1](https://www.wko.at/oe/news/0339-hue-snt-v-2027-begutachtungsentwurf.pdf) · [SNE-G-V, ` 6](https://www.ris.bka.gv.at/eli/bgbl/ii/2026/299/P6/NOR40281083)
+
+### Sichere Testreihenfolge
+
+1. **Backup erstellen** und mit einer unkritischen Teststeckdose beginnen.
+2. Im **Probelauf** Netzsensor, Viertelstundenwerte, Budget und Diagnose prüfen.
+3. Eine bewusst niedrige Testgrenze einstellen und bei aktiver Lastabschaltung einen bestätigten Abschaltvorgang beobachten.
+4. Für die Rückschaltung **die V15-Konfiguration nicht zwischendurch ändern**: Ein Neuladen löscht die Zuständigkeit für zuvor abgeschaltete Lasten. Die Hauslast außerhalb von V15 senken und eine bestätigte, einzelne Rückschaltung nach stabiler Reserve beobachten.
+5. Lastgrenze wieder normal einstellen und Testfälle mit fehlenden Messdaten, offenen Türen, deaktiviertem Fernstart, Neustarts und nicht bestätigten Aktionen separat prüfen.
+6. Neue Funktionen zunächst nur kontrolliert testen: beim Geschirrspüler die bisherige konkurrierende Automation deaktivieren; bei evcc parallele Regler für dieselben Entitäten deaktivieren; bei der Netzentgelt-Anzeige den gewählten Tarif und die fehlenden historischen Messwerte prüfen.
+
+### Sicherheit und Einschränkungen
+
+- **Keine sicherheitskritischen Verbraucher** abschalten, darunter medizinische Geräte, Server, Alarmtechnik, Heizungs- oder Frostschutz und Gefriergeräte mit relevantem Verlustrisiko.
+- Die Wirkung eines Schalters auf den Netzbezug ist geschätzt; Anlaufspitzen, PV, Speicher und andere Haushaltslasten können abweichen.
+- Die Berechnung verwendet positiven Netzbezug. Einspeisung wird nicht als frei verfügbares Leistungsbudget gegengerechnet.
+- Fehlende, veraltete oder unvollständige Messwerte blockieren Schaltbefehle. Bereits ausgeschaltete Geräte können ausgeschaltet bleiben.
+- Verzögerungen in Home Assistant, bei Geräten und insbesondere über Home-Connect-Cloud können eine garantierte Viertelstundenbegrenzung verhindern.
+- Konkurrierende Automationen für dieselben Verbraucher oder evcc-Stellgrößen vermeiden. Victron-ESS-Parameter werden in dieser Version nicht unmittelbar gesteuert.
+- Die Netzentgelt-Sensoren sind unverbindliche Modellwerte; sie dienen nicht zur rechtsverbindlichen Tarif- oder Einsparungsberechnung.
+
+### Fehler melden und mitarbeiten
+
+Bitte ein [GitHub Issue](https://github.com/SchreiterC/ha-v15-lastmanagement/issues) anlegen und **Home-Assistant-Version**, **V15-Version**, betroffene Entitäten und die relevanten Diagnose- oder Protokollauszüge angeben. Persönliche Daten, Zugangsdaten und andere Geheimnisse vor dem Teilen entfernen.
+
+### Lizenz
+
+Der Quellcode steht unter der **MIT-Lizenz**. Das V15-Logo ist eine projektbezogene Grafik.
+
+---
+
+## English
+
+### Overview
+
+**V15 Lastmanagement 0.3.7** is a Home Assistant integration for monitoring and cautiously limiting grid-import demand peaks within fixed 15-minute intervals (00/15/30/45 minutes). Based on measured grid import, V15 calculates the energy used so far in the current interval, a forecast and a conservative power budget. When the budget is at risk, it can switch off explicitly selected, **non-critical** appliances.
+
+Load shedding, optional load restoration and diagnostics are the core functions. **Experimental and explicitly opt-in** features include evcc control, Home Connect pause/resume and photovoltaic (PV)-optimized dishwasher starting. The Austrian network-charge display is a **nonbinding informational model**, not a billing service.
+
+**V15 is not a certified electricity demand meter and does not guarantee compliance with billable demand limits.** Cloud commands, measurement delays and unknown future appliance loads prevent guaranteed real-time limiting.
+
+### Features
+
+- Configurable grid-power sensor in W or kW, optional sign inversion and maximum reading age.
+- Current 15-minute grid-import energy, average, forecast, measurement coverage and remaining power budget.
+- Configurable power limit and additional safety margin.
+- Priority-based shedding of multiple `switch` entities.
+- Optional restoration **only** of loads that V15 has demonstrably shed during the current runtime.
+- Dry run using real measurements but no switching, plus demonstration mode with artificial data.
+- Diagnostics for control actions, V15-managed loads, restoration candidates and reasons for waiting.
+- Optional, independently enabled evcc charging-current control and Home Connect pause/resume.
+- Optional PV-optimized Home Connect dishwasher start with one-shot authorization.
+- Optional restoration of the two V15 live control switches after restart.
+- Optional, informational Austrian grid-capacity charge display for grid level 7.
+
+### Installation and updates
+
+**Requirement: Home Assistant 2026.11 or later.** The regular version is **0.3.7**; it does not require enabling prereleases.
+
+<!-- ha-marketplace:exclude-start -->
+[![Open in the Home Assistant Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration)
+
+1. [Open V15 Lastmanagement in the Home Assistant Marketplace](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration). If V15 is not listed, use **Settings → Marketplace → Add from link** and add `https://github.com/SchreiterC/ha-v15-lastmanagement`. Custom repositories may require a GitHub connection.
+2. Install the **regular version 0.3.7** through the Marketplace, or update an existing installation to this version.
+3. **Restart Home Assistant completely.**
+4. For a new installation, configure V15 under **Settings → Devices & services**. When upgrading, **do not delete** the existing integration; previous configuration and entity identifiers should be retained.
+5. Deliberately enable any new optional features under **V15 Lastmanagement → Configure**. Check previous settings and diagnostic sensors after upgrading.
+
+Older integrations installed using HACS are transferred to the integrated Marketplace when upgrading Home Assistant. After manually replacing integration files, also restart Home Assistant. If translations remain outdated, fully reload the browser page.
+<!-- ha-marketplace:exclude-end -->
+
+### Load shedding and automatic load restoration
+
+Under **Settings → Devices & services → V15 Lastmanagement → Configure**, select the grid sensor, quarter-hour demand limit, safety margin and priority-ordered switches. **Active Load Shedding** has its own enable switch. Neither demo mode nor dry run sends real switching commands.
+
+**Automatic load restoration** is optional and requires explicit consent. The parameters are configurable:
+
+1. **Minimum off duration**: **180 seconds** by default.
+2. **Stable power headroom**: **90 seconds** by default.
+3. **Additional power buffer**: **200 W** by default.
+4. **Estimated appliance power**: supply a separate, conservative estimate in **watts** for each selected switch, including possible startup surges.
+
+V15 considers only appliances it **switched off itself during the current runtime** and whose `off` state was confirmed. It never switches on manually disabled loads. Restoration is performed one appliance at a time, in **reverse shedding order**. At least 60 seconds separate consecutive restorations.
+
+Requirements include valid power data, at least **60 seconds of readings and 95% measurement coverage** in the current quarter-hour, a forecast that is not at risk, sufficient power budget, minimum off time and stable headroom. No restoration starts during the **last 90 seconds** of a quarter-hour. Errors, missing data or unconfirmed states block further actions.
+
+**Example:** With a 5.0 kW limit and a 0.5 kW margin, the control budget is at most 4.5 kW. A load estimated at 600 W plus a 200 W buffer requires additional headroom for **800 W**. This is a precaution, not a guarantee of actual demand.
+
+After restart, reload or configuration changes, V15 does **not restore ownership** of previously shed loads. Those appliances may remain off and require manual checking. Disabling live load control does not immediately switch them back on either.
+
+### Resume V15 switches after restart (optional)
+
+Two **independent, OFF-by-default** settings are available:
+
+- **Resume load shedding after restart** (`restore_live_control_on_restart`): If **V15 Active Load Shedding** was previously enabled, the live switch is enabled again after restart or reload. New actions still require valid meter data and the standard safety checks. Previously shed devices are **not** automatically switched back on.
+- **Resume PV start control after restart** (`restore_pv_start_on_restart`): If **V15 PV Program Start** was previously enabled, its live switch may be restored. **Previous start authorization is never reused.** After Home Assistant has fully started, the assigned `input_boolean` must first be switched **OFF** and then deliberately **ON** again.
+
+If a corresponding option is disabled, its live switch remains off after restart. Conservative dry-run mode is enabled by default. Explicitly enabling a live switch ends the dry run. The separate evcc controller still requires manual authorization after restarts. Restoration uses Home Assistant's stored entity states and requires a previously saved switch state.
+
+### PV-optimized Home Connect dishwasher start (experimental)
+
+This optional, independent controller uses Home Assistant's **existing Home Connect integration** and a deliberately enabled `input_boolean` as a **one-shot start authorization**. It is currently restricted to Home Connect **dishwashers** and does not change the selected program itself.
+
+The forecast sensor must provide the `wh_period_15m` attribute: ISO-8601 timestamps with **Wh per 15-minute interval**, for example from Open-Meteo Solar Forecast. V15 compares predicted solar energy over the **entire estimated program duration**. This does not predict actual available PV surplus, because future household consumption is unknown.
+
+**Setup and operation:**
+
+1. Enable **Experimental PV-optimized Home Connect Program Start** in the V15 options. Choose the dishwasher's **Selected Program** entity, the authorization helper, forecast sensor, starting window, program duration, minimum PV energy, assumed power draw, safety buffer and required stable headroom.
+2. Enable the independent **V15 PV Program Start** switch. It does not depend on load shedding or evcc. Unless restart restoration is configured, re-enable this switch after a restart.
+3. Select the desired program on the appliance, close its door, enable remote start and deliberately turn on the chosen authorization helper for that one cycle.
+4. Before starting, V15 verifies `ready` state, closed or locked door, remote control, remote start, connectivity, selected dishwasher program, valid V15 readings and adequate 15-minute budget.
+5. V15 turns the authorization helper **OFF before** calling `home_connect.start_selected_program`. Within three minutes the appliance must report `run`. Failed or unconfirmed attempts generate a notification; there is no automatic second attempt.
+6. **Disable any existing Home Assistant automation that starts the same dishwasher** to prevent competing start commands. Begin testing with conservative power estimates.
+
+For **15 minutes** after the configured latest start time, only the minimum PV forecast requirement is waived. All appliance and budget checks remain mandatory. Demo mode, dry run, insufficient coverage, missing or stale readings and unconfirmed appliance readiness block real starts.
+
+Cloud response times and later heating stages cannot be predicted precisely. PV starting **does not guarantee** compliance with billable quarter-hour demand limits. A real-world test with a NEFF Home Connect dishwasher succeeded; other devices require separate verification.
+
+### Home Connect pause and resume (experimental)
+
+Compatible Home Connect appliances can optionally participate in load control through existing `PauseProgram` and `ResumeProgram` entities. **V15 does not disconnect their electricity**, does not send `StopProgram` and does not start a new program through this pause/resume feature.
+
+V15 claims a pause only after the appliance confirms the paused state. Automatic resumption is limited to a V15-confirmed pause, and requires the minimum pause time, sufficient power budget, estimated appliance draw, buffer and stable headroom.
+
+Cloud latency, missing confirmations or Home Assistant restarts may require **manual resumption**. Automatic load restoration must be explicitly enabled for this feature. This extension is also not a reliable real-time load-shedding mechanism.
+
+### Optional evcc charging-current control (experimental)
+
+The evcc feature uses **existing Home Assistant entities** provided by an evcc integration, not the evcc HTTP API directly. It controls **one charging point** per V15 entry and is not enabled automatically.
+
+**Prerequisites:** A `select` or `number` for maximum charging current in amperes; a charging-mode `select` (at least `smart` and `off`); a measured wallbox power sensor in W or kW; and either the number of active phases (1 or 3) or a deliberately chosen fallback phase count. Never incorrectly set a potentially three-phase wallbox's fallback count to 1.
+
+**Configuration and control:**
+
+1. Under **V15 → Configure**, enable **Optional evcc Wallbox Control** and choose the entities. A typical starting configuration for a three-phase wallbox is approximately **230 V**, **6–16 A**, **300 W** extra buffer, **90 seconds** stable headroom and a **30-second** change interval.
+2. Leave **Allow charging pause** disabled initially. Without explicit consent, V15 only reduces to the configured minimum current, typically 6 A.
+3. Check the **V15 evcc Target Current** sensor in dry run before enabling the separate **V15 evcc Charging Current Control** switch. Control is issued only in `smart` mode.
+4. Current decreases are requested without the stability delay required for increases. Increases occur in steps of at most **1 A** at intervals of at least **30 seconds**, never exceeding the maximum current present when V15 control started.
+5. If minimum charging power exceeds the budget, V15 may switch the mode from `smart` to `off` only with explicit permission and measurable charging power. It may resume only a charging pause **it created itself**, back to `smart`; it never selects `now`.
+6. Conflicting commands, invalid readings, insufficient coverage, missing confirmations or external changes block further control commands. Standard V15 load shedding takes priority when the budget is at risk.
+
+**Limitations:** V15 does not switch phases, manage vehicle state of charge, charging schedules, solar priority or dynamic electricity prices. The calculation using 230 V per phase is approximate. After restarts or disabling V15, evcc limits and charging pauses previously set by V15 are **not automatically reset**. Check the wallbox in the evcc dashboard. Disable concurrent automations controlling the same current or mode during testing. Unverified production use with different hardware combinations is not recommended.
+
+### Austrian grid-capacity charges (optional informational model)
+
+Version 0.3.7 provides **read-only** cost estimates for Austrian connections at **grid level 7**. It distinguishes **14 network areas**: the nine federal-state areas plus **Klagenfurt, Linz, Graz, Innsbruck and Kleinwalsertal**. These network areas do not necessarily follow federal-state borders exactly.
+
+**Tariff sources:**
+
+- **2027 draft:** regional capacity rates from the **E-Control consultation draft for SNE-T-V 2027 dated 29 October 2026**. These rates are **nonbinding**, not necessarily currently effective and not necessarily the later transitional tariffs for each area. V15 does not automatically determine their start dates.
+- **Own tariff:** manually entered monthly capacity rates in **cents per kW per month** for the first **10 kW** and demand above that threshold, plus a configurable minimum billed demand. The default **2 kW** minimum does not apply to every contract without exception.
+
+**Additional sensors:**
+
+- **V15 Monthly Peak (locally observed)** in kW: highest sufficiently covered quarter-hour grid-import demand observed since local monitoring started in the current month.
+- **V15 Capacity Charge (model, net)** in EUR per month: calculated monthly capacity component using the chosen tariff and the locally observed peak.
+- **V15 Capacity Charge at Target Peak (difference, model)** in EUR per month: a **hypothetical comparison** with the configured V15 target peak, **not demonstrated financial savings**.
+
+A 15-minute interval is counted only if at least **855 out of 900 seconds (95%)** are covered. The locally observed monthly peak is preserved across Home Assistant restarts. Unobserved periods, meter failures, activation in the middle of a month and earlier historical peaks cannot be reconstructed. The network operator's actual bill may therefore be **higher**.
+
+The model excludes, among other items, **VAT, energy and network usage-based charges and other network or tax components**. It replaces neither the smart-meter portal nor the network operator's invoice. No billing data is retrieved, and these sensors **do not modify V15 load control**.
+
+**Sources:** [E-Control – 2027 consultation draft](https://www.e-control.at/de/konsumenten/begutachtungsentwurf-systemnutzungstarife-verordnung-2027) · [SNE-T-V 2027 draft, ` 5(1)](https://www.wko.at/oe/news/0339-hue-snt-v-2027-begutachtungsentwurf.pdf) · [SNE-G-V, ` 6](https://www.ris.bka.gv.at/eli/bgbl/ii/2026/299/P6/NOR40281083)
+
+### Safe test procedure
+
+1. **Create a backup** and begin with one non-critical test socket.
+2. Use **dry-run mode** to check the grid sensor, quarter-hour readings, power budget and diagnostics.
+3. Temporarily set a deliberately low demand limit, enable live shedding and observe a confirmed switch-off.
+4. For restoration, **do not change V15 configuration mid-test**: a reload clears ownership of previously shed loads. Reduce other household loads and observe one confirmed restoration after stable headroom.
+5. Restore normal limits and separately test missing meter data, open doors, disabled remote start, restarts and unconfirmed actions.
+6. Test optional features under supervision: disable the old competing dishwasher automation, disable parallel evcc regulators for the same entities, and verify selected tariff data and historical-data gaps in the cost display.
+
+### Safety and limitations
+
+- **Never shed safety-critical appliances**, including medical equipment, servers, alarms, heating or freeze protection and freezers where loss would be significant.
+- The impact of switching a load on grid demand is estimated; startup peaks, PV, batteries and other household loads may behave differently.
+- The calculation uses positive grid import. Exported power is not treated as available extra capacity.
+- Missing, stale or insufficient readings block commands. Previously switched-off devices may remain off.
+- Delays in Home Assistant, physical devices and particularly Home Connect cloud services prevent guaranteed quarter-hour peak limiting.
+- Avoid competing automations for the same appliances or evcc controls. This version does not directly control Victron ESS parameters.
+- Austrian capacity-charge sensors are nonbinding estimates, not legally definitive tariff or savings calculations.
+
+### Report problems and contribute
+
+Please open a [GitHub Issue](https://github.com/SchreiterC/ha-v15-lastmanagement/issues) and include your **Home Assistant version**, **V15 version**, relevant entities and diagnostic or log excerpts. Remove personal information, credentials and other secrets before sharing.
+
+### License
+
+The source code is licensed under the **MIT License**. The V15 logo is project-specific artwork.
