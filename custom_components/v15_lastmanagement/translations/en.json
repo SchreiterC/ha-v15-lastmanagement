@@ -91,7 +91,8 @@
           "pv_minimum_wh": "Minimum forecast PV energy (Wh)",
           "pv_estimated_watts": "Conservative appliance power estimate (W)",
           "pv_margin_watts": "Additional power safety margin (W)",
-          "pv_stable_seconds": "Stable headroom required (seconds)"
+          "pv_stable_seconds": "Stable headroom required (seconds)",
+          "pv_forecast_tomorrow_sensor": "Tomorrow's PV forecast (optional)"
         },
         "data_description": {
           "pv_selected_program": "Select the dishwasher Home Connect Selected Program entity.",
@@ -103,7 +104,8 @@
           "pv_minimum_wh": "Minimum forecast PV energy in the chosen window before deadline.",
           "pv_estimated_watts": "Conservative maximum including heating; later peaks cannot be guaranteed.",
           "pv_margin_watts": "Safety buffer in addition to estimated appliance power.",
-          "pv_stable_seconds": "V15 headroom must remain sufficient for this many seconds."
+          "pv_stable_seconds": "V15 headroom must remain sufficient for this many seconds.",
+          "pv_forecast_tomorrow_sensor": "Optional sensor with wh_period_15m for the next day. Used for the preview after today's start deadline only."
         }
       },
       "network_costs": {
@@ -234,7 +236,8 @@
           "pv_minimum_wh": "Minimum forecast PV energy (Wh)",
           "pv_estimated_watts": "Conservative appliance power estimate (W)",
           "pv_margin_watts": "Additional power safety margin (W)",
-          "pv_stable_seconds": "Stable headroom required (seconds)"
+          "pv_stable_seconds": "Stable headroom required (seconds)",
+          "pv_forecast_tomorrow_sensor": "Tomorrow's PV forecast (optional)"
         },
         "data_description": {
           "pv_selected_program": "Select the dishwasher Home Connect Selected Program entity.",
@@ -246,7 +249,8 @@
           "pv_minimum_wh": "Minimum forecast PV energy in the chosen window before deadline.",
           "pv_estimated_watts": "Conservative maximum including heating; later peaks cannot be guaranteed.",
           "pv_margin_watts": "Safety buffer in addition to estimated appliance power.",
-          "pv_stable_seconds": "V15 headroom must remain sufficient for this many seconds."
+          "pv_stable_seconds": "V15 headroom must remain sufficient for this many seconds.",
+          "pv_forecast_tomorrow_sensor": "Optional sensor with wh_period_15m for the next day. Used for the preview after today's start deadline only."
         }
       },
       "network_costs": {
@@ -281,6 +285,31 @@
       "pv_selected_invalid": "Invalid Home Connect selected-program entity.",
       "pv_dishwasher_only": "Only Home Connect dishwashers are supported.",
       "network_cost_missing_rates": "Both capacity rates must be greater than zero for a manual tariff."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pv_program_status": {
+        "name": "V15 PV program status",
+        "state": {
+          "idle": "Idle",
+          "disabled": "PV start disabled",
+          "simulation": "Dry run / demo",
+          "fresh_arm_required": "Fresh authorization required",
+          "not_ready": "Appliance not ready",
+          "waiting_pv": "Waiting for start window",
+          "waiting_conditions": "Waiting for headroom / safety conditions",
+          "waiting_tomorrow": "Start planned for tomorrow",
+          "starting": "Waiting for start confirmation",
+          "running": "Program running",
+          "paused": "Program paused",
+          "finished": "Program finished",
+          "error": "Appliance error",
+          "action_required": "Action required",
+          "aborting": "Program aborting",
+          "delayed_start": "Delayed start on appliance"
+        }
+      }
     }
   }
 }

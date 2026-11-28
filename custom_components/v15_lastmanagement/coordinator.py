@@ -99,6 +99,8 @@ class V15Monitor:
 
     @callback
     def notify(self):
+        if self.pv.configured:
+            self.pv.update_timing(dt_util.now())
         for fn in tuple(self.subscribers):
             fn()
 

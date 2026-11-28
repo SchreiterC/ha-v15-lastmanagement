@@ -91,7 +91,8 @@
           "pv_minimum_wh": "Minimale prognostizierte PV-Energie (Wh)",
           "pv_estimated_watts": "Konservativ geschätzte Geräteleistung (W)",
           "pv_margin_watts": "Zusätzliche Leistungsreserve (W)",
-          "pv_stable_seconds": "Erforderliche stabile Leistungsreserve (Sekunden)"
+          "pv_stable_seconds": "Erforderliche stabile Leistungsreserve (Sekunden)",
+          "pv_forecast_tomorrow_sensor": "PV-Prognose für morgen (optional)"
         },
         "data_description": {
           "pv_selected_program": "Wähle nur die Home-Connect-Entität Ausgewähltes Programm des Geschirrspülers.",
@@ -103,7 +104,8 @@
           "pv_minimum_wh": "Mindestmenge im besten verbleibenden PV-Fenster vor der Startfrist.",
           "pv_estimated_watts": "Konservativer Maximalwert einschließlich Aufheizphase. Kein sicherer Schutz vor späteren Lastspitzen.",
           "pv_margin_watts": "Zusätzlicher Puffer oberhalb der geschätzten Geräteleistung.",
-          "pv_stable_seconds": "Das verfügbare V15-Restbudget muss für diesen Zeitraum stabil ausreichend sein."
+          "pv_stable_seconds": "Das verfügbare V15-Restbudget muss für diesen Zeitraum stabil ausreichend sein.",
+          "pv_forecast_tomorrow_sensor": "Optionaler Sensor mit wh_period_15m für den Folgetag. Nur für die Vorschau nach Ablauf der heutigen Startfrist."
         }
       },
       "network_costs": {
@@ -234,7 +236,8 @@
           "pv_minimum_wh": "Minimale prognostizierte PV-Energie (Wh)",
           "pv_estimated_watts": "Konservativ geschätzte Geräteleistung (W)",
           "pv_margin_watts": "Zusätzliche Leistungsreserve (W)",
-          "pv_stable_seconds": "Erforderliche stabile Leistungsreserve (Sekunden)"
+          "pv_stable_seconds": "Erforderliche stabile Leistungsreserve (Sekunden)",
+          "pv_forecast_tomorrow_sensor": "PV-Prognose für morgen (optional)"
         },
         "data_description": {
           "pv_selected_program": "Wähle nur die Home-Connect-Entität Ausgewähltes Programm des Geschirrspülers.",
@@ -246,7 +249,8 @@
           "pv_minimum_wh": "Mindestmenge im besten verbleibenden PV-Fenster vor der Startfrist.",
           "pv_estimated_watts": "Konservativer Maximalwert einschließlich Aufheizphase. Kein sicherer Schutz vor späteren Lastspitzen.",
           "pv_margin_watts": "Zusätzlicher Puffer oberhalb der geschätzten Geräteleistung.",
-          "pv_stable_seconds": "Das verfügbare V15-Restbudget muss für diesen Zeitraum stabil ausreichend sein."
+          "pv_stable_seconds": "Das verfügbare V15-Restbudget muss für diesen Zeitraum stabil ausreichend sein.",
+          "pv_forecast_tomorrow_sensor": "Optionaler Sensor mit wh_period_15m für den Folgetag. Nur für die Vorschau nach Ablauf der heutigen Startfrist."
         }
       },
       "network_costs": {
@@ -281,6 +285,31 @@
       "pv_selected_invalid": "Home-Connect-Programmauswahl ungültig.",
       "pv_dishwasher_only": "Nur Home-Connect-Geschirrspüler sind für diese Funktion zulässig.",
       "network_cost_missing_rates": "Für einen Eigentarif beide Leistungspreise größer als null eingeben."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "pv_program_status": {
+        "name": "V15 PV-Programmstatus",
+        "state": {
+          "idle": "Inaktiv",
+          "disabled": "PV-Start deaktiviert",
+          "simulation": "Probelauf / Demo",
+          "fresh_arm_required": "Neue Startfreigabe erforderlich",
+          "not_ready": "Gerät nicht startbereit",
+          "waiting_pv": "Wartet auf Startzeitfenster",
+          "waiting_conditions": "Wartet auf Lastbudget / Freigaben",
+          "waiting_tomorrow": "Start morgen vorgesehen",
+          "starting": "Start wird bestätigt",
+          "running": "Programm läuft",
+          "paused": "Programm pausiert",
+          "finished": "Programm beendet",
+          "error": "Gerätefehler",
+          "action_required": "Bedienung erforderlich",
+          "aborting": "Programm wird abgebrochen",
+          "delayed_start": "Start am Gerät verzögert"
+        }
+      }
     }
   }
 }

@@ -4,7 +4,7 @@
 
 ![V15 Logo](custom_components/v15_lastmanagement/brand/logo.png)
 
-> **Version 0.3.7** · Die Kernfunktion zur Viertelstunden-Laststeuerung bleibt unverändert. PV-Start, evcc/Home Connect und die österreichische Netzentgelt-Vorschau sind optional; experimentelle Funktionen bieten keine garantierte Lastspitzenbegrenzung.
+> **Version 0.3.8** · Die Kernfunktion zur Viertelstunden-Laststeuerung bleibt unverändert. PV-Start, evcc/Home Connect und die österreichische Netzentgelt-Vorschau sind optional; experimentelle Funktionen bieten keine garantierte Lastspitzenbegrenzung.
 
 ---
 
@@ -13,7 +13,7 @@
 
 ### Überblick
 
-**V15 Lastmanagement 0.3.7** ist eine Home-Assistant-Integration zur Überwachung und vorsichtigen Begrenzung von Netzbezugs-Leistungsspitzen innerhalb fester Viertelstunden (00/15/30/45 Minuten). Aus dem gemessenen Netzbezug ermittelt V15 die bisherige Viertelstundenenergie, die Prognose und ein konservatives Leistungsbudget. Bei drohender Überschreitung können ausdrücklich ausgewählte, **unkritische** Verbraucher abgeschaltet werden.
+**V15 Lastmanagement 0.3.8** ist eine Home-Assistant-Integration zur Überwachung und vorsichtigen Begrenzung von Netzbezugs-Leistungsspitzen innerhalb fester Viertelstunden (00/15/30/45 Minuten). Aus dem gemessenen Netzbezug ermittelt V15 die bisherige Viertelstundenenergie, die Prognose und ein konservatives Leistungsbudget. Bei drohender Überschreitung können ausdrücklich ausgewählte, **unkritische** Verbraucher abgeschaltet werden.
 
 Die Lastabschaltung, ihre optionale Rückschaltung und die Diagnose bilden die Kernfunktion. **Experimentell und nur nach ausdrücklicher Aktivierung** sind die evcc-Steuerung, die Home-Connect-Pause/Fortsetzung und der PV-optimierte Geschirrspülerstart. Die österreichische Netzentgelt-Anzeige ist ein **unverbindliches Informationsmodell**, kein Abrechnungsdienst.
 
@@ -35,13 +35,13 @@ Die Lastabschaltung, ihre optionale Rückschaltung und die Diagnose bilden die K
 
 ### Installation und Aktualisierung
 
-**Voraussetzung: Home Assistant 2026.11 oder neuer.** Die reguläre Version ist **0.3.7**; für dieses Release ist keine Pre-release-Option nötig.
+**Voraussetzung: Home Assistant 2026.11 oder neuer.** Die reguläre Version ist **0.3.8**; für dieses Release ist keine Pre-release-Option nötig.
 
 <!-- ha-marketplace:exclude-start -->
 [![Im Home Assistant Marketplace öffnen](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration)
 
 1. [V15 Lastmanagement im Home Assistant Marketplace öffnen](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration). Falls V15 im Katalog nicht zu finden ist, unter **Einstellungen → Marketplace → Add from link** die Adresse `https://github.com/SchreiterC/ha-v15-lastmanagement` hinzufügen. Für benutzerdefinierte Repositories kann eine GitHub-Verbindung erforderlich sein.
-2. Im Marketplace die **reguläre Version 0.3.7** installieren beziehungsweise die vorhandene Installation auf diese Version aktualisieren.
+2. Im Marketplace die **reguläre Version 0.3.8** installieren beziehungsweise die vorhandene Installation auf diese Version aktualisieren.
 3. **Home Assistant vollständig neu starten.**
 4. Bei Neuinstallation unter **Einstellungen → Geräte & Dienste** V15 einrichten. Bei Updates die vorhandene Integration **nicht löschen**; die bisherigen Konfigurationen und Entitätskennungen sollen erhalten bleiben.
 5. Neue optionale Funktionen unter **V15 Lastmanagement → Konfigurieren** bewusst aktivieren. Nach dem Update die vorhandenen Einstellungen und die Diagnosesensoren prüfen.
@@ -96,6 +96,31 @@ Ab dem festgelegten spätesten Startzeitpunkt entfällt für **15 Minuten** nur 
 
 Die Cloud-Reaktionszeit und spätere Heizphasen sind nicht exakt vorauszusehen. Der PV-Start **garantiert keine** Begrenzung der abrechnungsrelevanten Viertelstundenleistung. Ein erfolgreicher Praxistest erfolgte mit einem NEFF-Home-Connect-Geschirrspüler; andere Geräte müssen separat überprüft werden.
 
+### Programmzeiten im Dashboard (experimentell)
+
+Bei konfiguriertem PV-Programmstart stehen drei zusätzliche, rein lesende Sensoren zur Verfügung:
+
+- **V15 PV-Programmstart geplant**: voraussichtlicher Startzeitpunkt.
+- **V15 PV-Programmende erwartet**: vor dem Start aus der konfigurierten Programmdauer berechnet, während des laufenden Programms aus dem Home-Connect-Endzeitpunkt übernommen, sofern verfügbar.
+- **V15 PV-Programmstatus**: aktueller Status der Startplanung und des Programms.
+
+Optional kann ein Solarprognosesensor für morgen mit dem Attribut `wh_period_15m` ausgewählt werden. Nach Ablauf des spätesten Startzeitpunkts samt 15 Minuten Toleranz wird der nächste Tag für die Vorschau berücksichtigt. Ohne geeignetes PV-Zeitfenster dient der späteste Startzeitpunkt als bedingte Schätzung. Die Prognose setzt weiterhin gültige Freigaben, Startbereitschaft und ausreichendes Lastbudget voraus. Sie erteilt keine Startfreigabe und löst keine zusätzlichen Steuerbefehle aus.
+
+Beispiel für eine manuelle Markdown-Karte im Dashboard (Entitäts-ID bei Bedarf prüfen):
+
+```yaml
+type: markdown
+show_empty: false
+content: |
+  {% set end = as_datetime(states('sensor.v15_lastmanagement_v15_pv_programmende_erwartet'), none) %}
+  {% if end and end > now() %}
+    {% set minutes = ((as_timestamp(end) - as_timestamp(now())) / 60) | round(0, 'ceil') | int %}
+    **Geschirrspüler: noch {{ minutes // 60 }} Std. {{ minutes % 60 }} Min.**
+
+    Voraussichtlich fertig: {{ as_local(end).strftime('%d.%m., %H:%M') }} Uhr
+  {% endif %}
+```
+
 ### Home Connect pausieren und fortsetzen (experimentell)
 
 Optional können geeignete Home-Connect-Geräte über die vorhandenen `PauseProgram`- und `ResumeProgram`-Entitäten in die Laststeuerung eingebunden werden. **V15 unterbricht dabei nicht die Stromversorgung**, sendet keinen `StopProgram`-Befehl und startet über diese Pause/Fortsetzung-Funktion kein neues Programm.
@@ -123,7 +148,7 @@ Die evcc-Funktion verwendet **vorhandene Home-Assistant-Entitäten** einer evcc-
 
 ### Österreichische Netz-Leistungsentgelte (optionales Informationsmodell)
 
-Version 0.3.7 bietet eine **rein lesende** Kostenanzeige für österreichische Anschlüsse auf **Netzebene 7**. Es werden **14 Netzbereiche** unterschieden: die neun Bundesland-Netzbereiche sowie **Klagenfurt, Linz, Graz, Innsbruck und Kleinwalsertal**. Diese Netzbereiche entsprechen nicht immer exakt den Bundeslandgrenzen.
+Version 0.3.8 bietet eine **rein lesende** Kostenanzeige für österreichische Anschlüsse auf **Netzebene 7**. Es werden **14 Netzbereiche** unterschieden: die neun Bundesland-Netzbereiche sowie **Klagenfurt, Linz, Graz, Innsbruck und Kleinwalsertal**. Diese Netzbereiche entsprechen nicht immer exakt den Bundeslandgrenzen.
 
 **Tarifgrundlagen:**
 
@@ -175,7 +200,7 @@ Der Quellcode steht unter der **MIT-Lizenz**. Das V15-Logo ist eine projektbezog
 
 ### Overview
 
-**V15 Lastmanagement 0.3.7** is a Home Assistant integration for monitoring and cautiously limiting grid-import demand peaks within fixed 15-minute intervals (00/15/30/45 minutes). Based on measured grid import, V15 calculates the energy used so far in the current interval, a forecast and a conservative power budget. When the budget is at risk, it can switch off explicitly selected, **non-critical** appliances.
+**V15 Lastmanagement 0.3.8** is a Home Assistant integration for monitoring and cautiously limiting grid-import demand peaks within fixed 15-minute intervals (00/15/30/45 minutes). Based on measured grid import, V15 calculates the energy used so far in the current interval, a forecast and a conservative power budget. When the budget is at risk, it can switch off explicitly selected, **non-critical** appliances.
 
 Load shedding, optional load restoration and diagnostics are the core functions. **Experimental and explicitly opt-in** features include evcc control, Home Connect pause/resume and photovoltaic (PV)-optimized dishwasher starting. The Austrian network-charge display is a **nonbinding informational model**, not a billing service.
 
@@ -197,13 +222,13 @@ Load shedding, optional load restoration and diagnostics are the core functions.
 
 ### Installation and updates
 
-**Requirement: Home Assistant 2026.11 or later.** The regular version is **0.3.7**; it does not require enabling prereleases.
+**Requirement: Home Assistant 2026.11 or later.** The regular version is **0.3.8**; it does not require enabling prereleases.
 
 <!-- ha-marketplace:exclude-start -->
 [![Open in the Home Assistant Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration)
 
 1. [Open V15 Lastmanagement in the Home Assistant Marketplace](https://my.home-assistant.io/redirect/marketplace_repository/?owner=SchreiterC&repository=ha-v15-lastmanagement&category=integration). If V15 is not listed, use **Settings → Marketplace → Add from link** and add `https://github.com/SchreiterC/ha-v15-lastmanagement`. Custom repositories may require a GitHub connection.
-2. Install the **regular version 0.3.7** through the Marketplace, or update an existing installation to this version.
+2. Install the **regular version 0.3.8** through the Marketplace, or update an existing installation to this version.
 3. **Restart Home Assistant completely.**
 4. For a new installation, configure V15 under **Settings → Devices & services**. When upgrading, **do not delete** the existing integration; previous configuration and entity identifiers should be retained.
 5. Deliberately enable any new optional features under **V15 Lastmanagement → Configure**. Check previous settings and diagnostic sensors after upgrading.
@@ -258,6 +283,12 @@ For **15 minutes** after the configured latest start time, only the minimum PV f
 
 Cloud response times and later heating stages cannot be predicted precisely. PV starting **does not guarantee** compliance with billable quarter-hour demand limits. A real-world test with a NEFF Home Connect dishwasher succeeded; other devices require separate verification.
 
+### Program timing on the dashboard (experimental)
+
+Three additional read-only sensors are available when PV program start is configured: **V15 PV-Programmstart geplant** (estimated start), **V15 PV-Programmende erwartet** (estimated finish), and **V15 PV-Programmstatus** (program status). Before starting, the finish estimate uses the configured program duration. During operation it uses the Home Connect finish timestamp, if available.
+
+An optional tomorrow forecast sensor can be selected with the same `wh_period_15m` attribute. After the latest start time plus a 15-minute grace period, the preview considers tomorrow. If no qualifying PV window exists, the deadline is used as a conditional estimate. All estimates depend on readiness, authorization and adequate load budget; they do not authorize a start or send additional control commands. The dashboard example in the German section also works in English installations; verify the entity ID.
+
 ### Home Connect pause and resume (experimental)
 
 Compatible Home Connect appliances can optionally participate in load control through existing `PauseProgram` and `ResumeProgram` entities. **V15 does not disconnect their electricity**, does not send `StopProgram` and does not start a new program through this pause/resume feature.
@@ -285,7 +316,7 @@ The evcc feature uses **existing Home Assistant entities** provided by an evcc i
 
 ### Austrian grid-capacity charges (optional informational model)
 
-Version 0.3.7 provides **read-only** cost estimates for Austrian connections at **grid level 7**. It distinguishes **14 network areas**: the nine federal-state areas plus **Klagenfurt, Linz, Graz, Innsbruck and Kleinwalsertal**. These network areas do not necessarily follow federal-state borders exactly.
+Version 0.3.8 provides **read-only** cost estimates for Austrian connections at **grid level 7**. It distinguishes **14 network areas**: the nine federal-state areas plus **Klagenfurt, Linz, Graz, Innsbruck and Kleinwalsertal**. These network areas do not necessarily follow federal-state borders exactly.
 
 **Tariff sources:**
 

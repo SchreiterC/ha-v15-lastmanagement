@@ -19,6 +19,7 @@ from .const import (
     DEFAULT_EVCC_STEP_S,
     CONF_HC_PAUSE, CONF_HC_POWERS,
     CONF_PV_ENABLED, CONF_PV_SELECTED, CONF_PV_ARM, CONF_PV_FORECAST,
+    CONF_PV_FORECAST_TOMORROW,
     CONF_PV_EARLIEST, CONF_PV_DEADLINE, CONF_PV_DURATION,
     CONF_PV_MIN_WH, CONF_PV_WATTS, CONF_PV_MARGIN, CONF_PV_STABLE,
     CONF_RESTART_LIVE, CONF_RESTART_PV,
@@ -153,6 +154,10 @@ def pv_start_schema(previous=None, hass=None):
         vol.Required(CONF_PV_ARM, default=v.get(CONF_PV_ARM, vol.UNDEFINED)):
             EntitySelector(EntitySelectorConfig(domain="input_boolean")),
         vol.Required(CONF_PV_FORECAST, default=v.get(CONF_PV_FORECAST, vol.UNDEFINED)):
+            EntitySelector(EntitySelectorConfig(domain="sensor")),
+        vol.Optional(CONF_PV_FORECAST_TOMORROW, description={
+            "suggested_value": v[CONF_PV_FORECAST_TOMORROW]
+        } if v.get(CONF_PV_FORECAST_TOMORROW) else None):
             EntitySelector(EntitySelectorConfig(domain="sensor")),
         vol.Required(CONF_PV_EARLIEST, default=v.get(CONF_PV_EARLIEST, "09:00")): str,
         vol.Required(CONF_PV_DEADLINE, default=v.get(CONF_PV_DEADLINE, "15:00")): str,
@@ -312,6 +317,7 @@ class V15ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             error = pv_start_error(user_input, self.hass)
             if error is None:
                 self._pending_data.update(user_input)
+                self._pending_data[CONF_PV_FORECAST_TOMORROW] = user_input.get(CONF_PV_FORECAST_TOMORROW)
                 return await self._finish_cost_setup()
             errors["base"] = error
         return self.async_show_form(
@@ -411,6 +417,7 @@ class V15OptionsFlow(config_entries.OptionsFlow):
             error = pv_start_error(user_input, self.hass)
             if error is None:
                 self._pending_data.update(user_input)
+                self._pending_data[CONF_PV_FORECAST_TOMORROW] = user_input.get(CONF_PV_FORECAST_TOMORROW)
                 return await self._finish_cost_options()
             errors["base"] = error
         return self.async_show_form(

@@ -83,6 +83,42 @@ def plan_window(
     return PvWindow(best_start, max(0.0, best_wh), count)
 
 
+def preview_start(
+    today_values: Mapping[str, object] | None,
+    tomorrow_values: Mapping[str, object] | None,
+    now: datetime,
+    earliest: str,
+    deadline: str,
+    duration_minutes: int,
+    minimum_wh: float,
+) -> tuple[datetime, str]:
+    """Read-only ETA using the same planner and deadline as live control.
+
+    After the deadline grace, preview tomorrow. Without a qualifying PV
+    window, show the deadline as a conditional estimate, not a reservation.
+    Never authorize a start. Round a due start to the current minute to avoid
+    continuously changing dashboard timestamps.
+    """
+    dh, dm = parse_clock(deadline)
+    last = now.replace(hour=dh, minute=dm, second=0, microsecond=0)
+    day = now
+    values = today_values
+    if now >= last + timedelta(minutes=15):
+        day = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        last = day.replace(hour=dh, minute=dm)
+        values = tomorrow_values
+    plan = plan_window(values, day, earliest, deadline, duration_minutes)
+    if day == now and now >= last:
+        candidate, source = last, "deadline"
+    elif plan.start is not None and plan.energy_wh >= minimum_wh:
+        candidate, source = plan.start, "pv_forecast"
+    else:
+        candidate, source = last, "deadline"
+    return max(candidate, day.replace(second=0, microsecond=0)), source
+
+
 def start_allowed(
     now: datetime,
     plan: PvWindow,

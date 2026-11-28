@@ -19,6 +19,8 @@ FIELDS = {
 async def async_setup_entry(hass, entry, async_add_entities):
     m = hass.data[DOMAIN][entry.entry_id]
     entities = [V15Sensor(m, key, *metadata) for key, metadata in FIELDS.items()] + [V15Explanation(m)]
+    if m.pv.configured:
+        entities.extend(V15ProgramTimingSensor(m, key) for key in ("start", "end", "status"))
     if m.evcc.configured:
         entities.append(V15EvccTargetSensor(m))
     if m.costs.enabled:
@@ -109,6 +111,68 @@ class V15Explanation(SensorEntity):
                 "evcc_target_current_a": self.monitor.evcc.target,
                 "evcc_available_charge_w": self.monitor.evcc.available_w,
                 "evcc_base_load_w": self.monitor.evcc.base_w}
+
+    async def async_added_to_hass(self):
+        self.async_on_remove(self.monitor.subscribe(self.async_write_ha_state))
+
+
+class V15ProgramTimingSensor(SensorEntity):
+    """Read-only dishwasher timing; unknown timestamps when not meaningful."""
+
+    _attr_has_entity_name = False
+    LABELS = {
+        "start": "V15 PV-Programmstart geplant",
+        "end": "V15 PV-Programmende erwartet",
+        "status": "V15 PV-Programmstatus",
+    }
+    OPTIONS = [
+        "idle",
+        "disabled",
+        "simulation",
+        "fresh_arm_required",
+        "not_ready",
+        "waiting_pv",
+        "waiting_conditions",
+        "waiting_tomorrow",
+        "starting",
+        "running",
+        "paused",
+        "finished",
+        "error",
+        "action_required",
+        "aborting",
+        "delayed_start",
+    ]
+
+    def __init__(self, monitor, key):
+        self.monitor = monitor
+        self.key = key
+        self._attr_name = self.LABELS[key]
+        self._attr_unique_id = f"{monitor.entry.entry_id}_pv_program_{key}"
+        self._attr_device_info = v15_device_info(monitor)
+        if key == "status":
+            self._attr_device_class = SensorDeviceClass.ENUM
+            self._attr_options = self.OPTIONS
+            self._attr_translation_key = "pv_program_status"
+            self._attr_icon = "mdi:dishwasher"
+        else:
+            self._attr_device_class = SensorDeviceClass.TIMESTAMP
+            self._attr_icon = "mdi:clock-outline"
+
+    @property
+    def native_value(self):
+        return self.monitor.pv.timing.get(self.key)
+
+    @property
+    def extra_state_attributes(self):
+        timing = self.monitor.pv.timing
+        result = {
+            "source": timing["source"],
+            "estimate_only": True,
+        }
+        if self.key == "status":
+            result["reason"] = self.monitor.pv.last_reason
+        return result
 
     async def async_added_to_hass(self):
         self.async_on_remove(self.monitor.subscribe(self.async_write_ha_state))

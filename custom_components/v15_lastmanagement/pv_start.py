@@ -4,17 +4,18 @@ No StartProgram is issued without a one-shot input_boolean, a selected
 dishwasher program, positive V15 headroom, current metering and an explicit
 runtime switch enable. Never attempts to start an oven or a washer.
 """
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 
 from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_PV_ENABLED, CONF_PV_SELECTED, CONF_PV_ARM, CONF_PV_FORECAST,
+    CONF_PV_FORECAST_TOMORROW,
     CONF_PV_EARLIEST, CONF_PV_DEADLINE, CONF_PV_DURATION,
     CONF_PV_MIN_WH, CONF_PV_WATTS, CONF_PV_MARGIN, CONF_PV_STABLE,
 )
-from .pv_start_logic import plan_window, start_allowed
+from .pv_start_logic import plan_window, preview_start, start_allowed
 from .restore_logic import power_headroom_ok
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ DOOR = "BSH.Common.Status.DoorState"
 REMOTE = "BSH.Common.Status.RemoteControlActive"
 REMOTE_START = "BSH.Common.Status.RemoteControlStartAllowed"
 CONNECTED = "BSH.Common.Event.ApplianceConnected"
+FINISH_TIME = "BSH.Common.Option.RemainingProgramTime"
 
 
 class V15PvStartController:
@@ -44,12 +46,14 @@ class V15PvStartController:
         self.last_reason = "Nicht konfiguriert" if not self.configured else "PV-Start deaktiviert"
         self.planned_start = None
         self.planned_wh = None
+        self.timing = {"status": "idle", "start": None, "end": None, "source": None}
         self.selected = None
         self.operation = None
         self.door = None
         self.remote = None
         self.remote_start = None
         self.connectivity = None
+        self.finish_time = None
         self.device_id = None
         if self.configured:
             self.resolve()
@@ -73,6 +77,7 @@ class V15PvStartController:
         self.remote = None
         self.remote_start = None
         self.connectivity = None
+        self.finish_time = None
         self.device_id = None
         self.missing_entities = []
         if entry is None or entry.platform != "home_connect" or entry.disabled_by is not None:
@@ -120,6 +125,8 @@ class V15PvStartController:
         self.connectivity = lookup(
             "binary_sensor", CONNECTED, device_class="connectivity"
         )
+        # Optional, read-only sensor; never a prerequisite for appliance control.
+        self.finish_time = lookup("sensor", FINISH_TIME, "program_finish_time")
         self.missing_entities = [
             name for name, value in (
                 ("operation_state", self.operation),
@@ -140,8 +147,9 @@ class V15PvStartController:
     def observed_entities(self):
         return list(dict.fromkeys(e for e in (
             self.selected, self.operation, self.door, self.remote, self.remote_start,
-            self.connectivity, self.m.config.get(CONF_PV_ARM),
-            self.m.config.get(CONF_PV_FORECAST)) if e))
+            self.connectivity, self.finish_time, self.m.config.get(CONF_PV_ARM),
+            self.m.config.get(CONF_PV_FORECAST),
+            self.m.config.get(CONF_PV_FORECAST_TOMORROW)) if e))
 
     def deactivate(self, reason="PV-Start deaktiviert"):
         self.enabled = False
@@ -198,9 +206,12 @@ class V15PvStartController:
                 and self._is(self.remote_start, "on")
                 and self._is(self.connectivity, "on"))
 
+    def _forecast(self, key):
+        state = self._state(self.m.config.get(key))
+        return state.attributes.get("wh_period_15m") if state else None
+
     def _plan(self, now):
-        state = self._state(self.m.config.get(CONF_PV_FORECAST))
-        forecast = state.attributes.get("wh_period_15m") if state else None
+        forecast = self._forecast(CONF_PV_FORECAST)
         result = plan_window(
             forecast, now, self.m.config[CONF_PV_EARLIEST],
             self.m.config[CONF_PV_DEADLINE],
@@ -209,6 +220,75 @@ class V15PvStartController:
         self.planned_start = result.start.isoformat() if result.start else None
         self.planned_wh = round(result.energy_wh) if result.valid_windows else None
         return result
+
+    def update_timing(self, now):
+        """Publish a conditional schedule, never issue a service call.
+
+        Running/paused state takes precedence over the one-shot arm, which
+        is consumed before the cloud command. A missing finish-time entity
+        or stale/past timestamp never blocks starting or invents a live ETA.
+        """
+        result = {"status": "idle", "start": None, "end": None, "source": None}
+        self.timing = result
+        if not self.configured:
+            return
+        state = self._state(self.operation)
+        operation = state.state if state is not None else None
+        if operation == "run":
+            result["status"] = "running"
+            finish = self._state(self.finish_time)
+            if self._is(self.connectivity, "on") and finish is not None:
+                try:
+                    end = datetime.fromisoformat(finish.state.replace("Z", "+00:00"))
+                    if end.utcoffset() is not None and end > now:
+                        result.update(end=end, source="home_connect")
+                except (TypeError, ValueError, OverflowError):
+                    pass
+            return
+        reported = {
+            "pause": "paused", "finished": "finished", "error": "error",
+            "actionrequired": "action_required", "aborting": "aborting",
+            "delayedstart": "delayed_start",
+        }
+        if operation in reported:
+            result["status"] = reported[operation]
+            return
+        if self.busy or self.pending_until is not None:
+            result["status"] = "starting"
+            return
+        if not self._is(self.m.config.get(CONF_PV_ARM), "on"):
+            return
+        if not self.enabled:
+            result["status"] = "disabled"
+            return
+        if self.m.simulation or self.m.demo_data:
+            result["status"] = "simulation"
+            return
+        if self.require_fresh_arm:
+            result["status"] = "fresh_arm_required"
+            return
+        if not self._ready():
+            result["status"] = "not_ready"
+            return
+        duration = int(self.m.config[CONF_PV_DURATION])
+        start, source = preview_start(
+            self._forecast(CONF_PV_FORECAST),
+            self._forecast(CONF_PV_FORECAST_TOMORROW),
+            now, self.m.config[CONF_PV_EARLIEST],
+            self.m.config[CONF_PV_DEADLINE], duration,
+            float(self.m.config[CONF_PV_MIN_WH]),
+        )
+        # Duration is elapsed time, including across a daylight-saving change.
+        end = datetime.fromtimestamp(
+            start.timestamp() + duration * 60, tz=start.tzinfo
+        )
+        if start.date() != now.date():
+            status = "waiting_tomorrow"
+        elif start > now:
+            status = "waiting_pv"
+        else:
+            status = "waiting_conditions"
+        result.update(status=status, start=start, end=end, source=source)
 
     def evaluate(self, now, watts, cal, trusted):
         """Read-only evaluation; schedule only after all safety checks hold."""
