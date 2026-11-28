@@ -9,6 +9,6 @@ def v15_device_info(monitor):
         name="V15 Lastmanagement",
         manufacturer="V15 Lastmanagement",
         model="Viertelstunden-Lastmanagement",
-        sw_version="0.3.7",
+        sw_version="0.3.8",
         entry_type=DeviceEntryType.SERVICE,
     )

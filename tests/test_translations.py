@@ -59,6 +59,7 @@ class TestFlowTranslations(unittest.TestCase):
     def test_pv_start_page_has_bilingual_labels_and_descriptions(self):
         required = {
             "pv_selected_program", "pv_start_arm", "pv_forecast_sensor",
+            "pv_forecast_tomorrow_sensor",
             "pv_earliest", "pv_deadline", "pv_duration_minutes",
             "pv_minimum_wh", "pv_estimated_watts", "pv_margin_watts",
             "pv_stable_seconds",
